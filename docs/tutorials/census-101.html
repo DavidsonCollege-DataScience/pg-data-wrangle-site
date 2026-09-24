@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Start here. Learn the difference between the decennial census and the ACS, how census geographies nest inside each other, and how to download a table from data.census.gov.">
+
+<title>Census 101: How Census Data Is Organized – Public Good Data Wrangle</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../images/Circle-favicon-32x32.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-17c35557d8165a53918e039a150c173c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/quarto-contrib/code-window-0.1.0/style.css" rel="stylesheet">
+<script>document.addEventListener("DOMContentLoaded",function(){
+  var DEFAULT_COLLAPSE=null;
+  document.querySelectorAll("pre.cw-auto").forEach(function(pre){
+    var fn=pre.closest("[data-filename]");
+    if(!fn)return;
+    var name=fn.getAttribute("data-filename");
+    if(!name)return;
+    var scaffold=pre.closest(".code-copy-outer-scaffold")||pre.closest(".sourceCode");
+    if(!scaffold)return;
+    var w=document.createElement("div");
+    w.className="code-with-filename code-window-auto";
+    var tb=document.createElement("div");
+    tb.className="code-with-filename-file";
+    var tp=document.createElement("pre");
+    var ts=document.createElement("strong");
+    ts.textContent=name;
+    tp.appendChild(ts);tb.appendChild(tp);
+    scaffold.parentNode.insertBefore(w,scaffold);
+    w.appendChild(tb);w.appendChild(scaffold);
+    pre.classList.remove("cw-auto");
+  });
+  function findMarkerSource(el){
+    return el.querySelector('pre[class*="cw-style-"],pre[class*="cw-collapse-"],pre[data-code-window-lines-label]')
+      ||el.querySelector('[class*="cw-style-"],[class*="cw-collapse-"],[data-code-window-lines-label]');
+  }
+  document.querySelectorAll(".code-with-filename").forEach(function(el){
+    var marker=findMarkerSource(el);
+    var styleApplied=/\bcode-window-(macos|windows|default)\b/.test(el.className);
+    if(!styleApplied){
+      var sm=marker&&marker.className.match(/cw-style-(\w+)/);
+      if(sm){el.classList.add("code-window-"+sm[1]);marker.classList.remove(sm[0]);}
+      else{el.classList.add("code-window-macos");}
+    }
+    var collapse=null;
+    if(marker){
+      var cm=marker.className.match(/cw-collapse-(open|closed)/);
+      if(cm){collapse=cm[1];marker.classList.remove(cm[0]);}
+    }
+    if(collapse===null&&DEFAULT_COLLAPSE){collapse=DEFAULT_COLLAPSE;}
+    if(marker&&marker.hasAttribute("data-code-window-lines-label")){
+      var spec=marker.getAttribute("data-code-window-lines-label");
+      marker.removeAttribute("data-code-window-lines-label");
+      var titleBar=el.querySelector(".code-with-filename-file");
+      if(titleBar&&!titleBar.querySelector(".code-with-filename-lines")){
+        var chip=document.createElement("span");
+        chip.className="code-with-filename-lines";
+        chip.textContent="L"+spec;
+        titleBar.appendChild(chip);
+      }
+    }
+    if(collapse&&!el.classList.contains("code-window-collapsible")){
+      var titleBar=el.querySelector(".code-with-filename-file");
+      if(titleBar){
+        var details=document.createElement("details");
+        details.className=el.className+" code-window-collapsible";
+        if(collapse==="open"){details.open=true;}
+        var summaryEl=document.createElement("summary");
+        summaryEl.className="code-with-filename-file";
+        while(titleBar.firstChild){summaryEl.appendChild(titleBar.firstChild);}
+        titleBar.parentNode.removeChild(titleBar);
+        details.appendChild(summaryEl);
+        while(el.firstChild){details.appendChild(el.firstChild);}
+        el.parentNode.replaceChild(details,el);
+      }
+    }
+  });
+});</script>
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<meta property="og:title" content="Census 101: How Census Data Is Organized – Public Good Data Wrangle">
+<meta property="og:description" content="Start here. Learn the difference between the decennial census and the ACS, how census geographies nest inside each other, and how to download a table from data.census.gov.">
+<meta property="og:site_name" content="Public Good Data Wrangle">
+</head>
+
+<body class="nav-fixed fullcontent quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Public Good Data Wrangle</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://forms.gle/Fbp3XjCReeLyfgcr7"> 
+<span class="menu-text"><span class="btn btn-light">Register now!</span></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#about"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#location"> 
+<span class="menu-text">Location</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#schedule"> 
+<span class="menu-text">Schedule</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#faq"> 
+<span class="menu-text">FAQ</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#organizers"> 
+<span class="menu-text">Organizers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../tutorials/index.html"> 
+<span class="menu-text">Tutorials</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Census 101: How Census Data Is Organized</h1>
+<p class="subtitle lead">Data products, geographic hierarchies, and downloading tables by hand</p>
+</div>
+
+<div>
+  <div class="description">
+    Start here. Learn the difference between the decennial census and the ACS, how census geographies nest inside each other, and how to download a table from data.census.gov.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>About this tutorial
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Time:</strong> about 20 minutes. <strong>Prerequisites:</strong> none. You don’t need to write any code for this one.</p>
+<p>By the end, you will be able to:</p>
+<ul>
+<li>explain how the decennial census differs from the American Community Survey (ACS)</li>
+<li>read an ACS estimate together with its margin of error</li>
+<li>describe the census geographic hierarchy and decode a GEOID</li>
+<li>find and download a census table from <a href="https://data.census.gov" target="_blank">data.census.gov</a></li>
+</ul>
+</div>
+</div>
+<section id="why-start-here" class="level2">
+<h2 class="anchored" data-anchor-id="why-start-here">Why start here?</h2>
+<p>The R and Python tutorials that follow will pull census data with a few lines of code. That code is easy to write. The hard part is knowing <em>what</em> to ask for. You need to pick a data product, a year, a table, and a level of geography, and each choice changes what the numbers mean. This tutorial covers the vocabulary you need to make those choices well.</p>
+<p>Most of the material here is covered in more depth in Chapter 1 of Kyle Walker’s free online book, <a href="https://walker-data.com/census-r/the-united-states-census-and-the-r-programming-language.html" target="_blank"><em>Analyzing US Census Data</em></a>.</p>
+</section>
+<section id="two-data-products-you-will-use-most" class="level2">
+<h2 class="anchored" data-anchor-id="two-data-products-you-will-use-most">Two data products you will use most</h2>
+<p>The Census Bureau publishes dozens of datasets. For most Data Wrangle projects, you will use one of these two.</p>
+<section id="the-decennial-census" class="level3">
+<h3 class="anchored" data-anchor-id="the-decennial-census">The decennial census</h3>
+<p>The US Constitution requires a count of every person living in the country every ten years. The most recent count took place in 2020. The decennial census asks only a few questions, such as age, sex, race, Hispanic origin, household relationship, and whether a home is owned or rented.</p>
+<p>Because it tries to count everyone, the decennial census reports <strong>counts</strong> rather than estimates. It is published down to the <strong>census block</strong>, the smallest unit of census geography. The 2020 results are released in several files. The two you are most likely to see are:</p>
+<ul>
+<li>the <strong>PL 94-171 Redistricting Data</strong>, which has basic population and race counts</li>
+<li>the <strong>Demographic and Housing Characteristics File (DHC)</strong>, which has more detail on age, sex, households, and housing</li>
+</ul>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Counts are not perfectly exact
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The Census Bureau adds a small amount of statistical noise to 2020 results through a method called <em>differential privacy</em>. The noise protects the confidentiality of respondents. It matters little for counties but can matter for very small areas such as individual blocks.</p>
+</div>
+</div>
+</section>
+<section id="the-american-community-survey-acs" class="level3">
+<h3 class="anchored" data-anchor-id="the-american-community-survey-acs">The American Community Survey (ACS)</h3>
+<p>The ACS is a survey sent to about 3.5 million addresses every year. It asks far more questions than the decennial census, including questions on income, poverty, education, commuting, health insurance, internet access, and housing costs. If your question involves money, work, or schooling, you probably want the ACS.</p>
+<p>Because the ACS is a sample, it reports <strong>estimates</strong>. Each estimate comes with a <strong>margin of error (MOE)</strong>. The Bureau releases two main versions:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>ACS 1-year</th>
+<th>ACS 5-year</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Data collected over</td>
+<td>12 months</td>
+<td>60 months</td>
+</tr>
+<tr class="even">
+<td>Geographies covered</td>
+<td>Areas with 65,000 or more people</td>
+<td>All areas, down to block groups</td>
+</tr>
+<tr class="odd">
+<td>Strength</td>
+<td>Most current</td>
+<td>Most reliable, and covers small areas</td>
+</tr>
+<tr class="even">
+<td>Latest release (as of Fall 2026)</td>
+<td>2024</td>
+<td>2020 to 2024</td>
+</tr>
+</tbody>
+</table>
+<p>A 5-year estimate describes the whole five-year period. It is not a value for the final year. For example, the “2024 ACS 5-year” median household income for a county summarizes responses collected from 2020 through 2024.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Two rules of thumb for the ACS
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li><strong>Census tracts and block groups exist only in the 5-year data.</strong> They are too small for the 1-year survey.</li>
+<li><strong>Don’t compare overlapping 5-year periods.</strong> Comparing 2019 to 2023 with 2020 to 2024 is misleading because four of the five years are the same. Compare periods that don’t overlap, such as 2015 to 2019 with 2020 to 2024.</li>
+</ol>
+</div>
+</div>
+</section>
+<section id="reading-a-margin-of-error" class="level3">
+<h3 class="anchored" data-anchor-id="reading-a-margin-of-error">Reading a margin of error</h3>
+<p>Suppose the ACS reports that a census tract has a median household income of $62,000 with an MOE of $9,000. ACS margins of error use a 90 percent confidence level. So the Bureau is 90 percent confident that the true value falls between $53,000 and $71,000.</p>
+<p>This matters when you compare places. Say a neighboring tract has an estimate of $66,000 ± $10,000. The two ranges overlap a lot, so you cannot claim that one tract really earns more than the other. Small geographies have small samples. That means large MOEs, so keep an eye on them whenever you work at the tract level.</p>
+</section>
+</section>
+<section id="the-geographic-hierarchy" class="level2">
+<h2 class="anchored" data-anchor-id="the-geographic-hierarchy">The geographic hierarchy</h2>
+<p>Census data is always reported <em>for a place</em>. The Bureau organizes places into a hierarchy. The core of it is sometimes called the “spine,” because each level nests cleanly inside the one above it.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-filename="default"><pre class="sourceCode default cw-auto code-with-copy"><code class="sourceCode default"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Nation</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>└── Region (4)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    └── Division (9)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        └── State (50, plus DC and Puerto Rico)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            └── County (NC has 100)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>                └── Census tract (about 1,200 to 8,000 people)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>                    └── Block group (about 600 to 3,000 people)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>                        └── Block (smallest; decennial census only)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A few things to know about the spine:</p>
+<ul>
+<li><strong>Counties</strong> are the workhorse geography for statewide comparisons. North Carolina’s 100 counties make for a manageable map.</li>
+<li><strong>Census tracts</strong> are drawn to hold about 4,000 people. They are the most common way to look <em>inside</em> a county. North Carolina has about 2,670 tracts, and Mecklenburg County has 305 of them.</li>
+<li><strong>Tract boundaries are redrawn every ten years.</strong> Tracts from the 2010s don’t always match tracts from the 2020s. Be careful when you compare tract data from before and after 2020.</li>
+</ul>
+<section id="geographies-that-dont-nest" class="level3">
+<h3 class="anchored" data-anchor-id="geographies-that-dont-nest">Geographies that don’t nest</h3>
+<p>Some geographies you will care about sit <em>off</em> the spine. They don’t fit neatly inside counties or tracts:</p>
+<ul>
+<li><strong>Places</strong> are cities, towns, and unincorporated communities, such as Davidson, Charlotte, or Cornelius. Place boundaries can cross county lines. The town of Cary, for example, lies partly in Wake County and partly in Chatham County.</li>
+<li><strong>ZIP Code Tabulation Areas (ZCTAs)</strong> approximate ZIP codes. The Postal Service designs ZIP codes to deliver mail, not to describe communities, so ZCTAs cross county and even state lines.</li>
+<li><strong>Congressional districts</strong>, <strong>state legislative districts</strong>, and <strong>school districts</strong> follow political boundaries.</li>
+<li><strong>Metropolitan and micropolitan statistical areas</strong> group counties into regional economies. Davidson sits in the Charlotte-Concord-Gastonia metro area, which crosses into South Carolina.</li>
+</ul>
+<p>When you choose a geography, pick one that matches your question. If you are asking about school funding, school districts may fit better than counties.</p>
+</section>
+</section>
+<section id="geoids-the-key-that-ties-everything-together" class="level2">
+<h2 class="anchored" data-anchor-id="geoids-the-key-that-ties-everything-together">GEOIDs: the key that ties everything together</h2>
+<p>Every census geography has a numeric identifier called a <strong>GEOID</strong>. It is built by stacking FIPS codes from each level of the spine:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Level</th>
+<th>Digits</th>
+<th>Example</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>State</td>
+<td>2</td>
+<td><code>37</code></td>
+<td>North Carolina</td>
+</tr>
+<tr class="even">
+<td>County</td>
+<td>3</td>
+<td><code>119</code></td>
+<td>Mecklenburg County</td>
+</tr>
+<tr class="odd">
+<td>Tract</td>
+<td>6</td>
+<td><code>000101</code></td>
+<td>Census Tract 1.01</td>
+</tr>
+<tr class="even">
+<td>Block group</td>
+<td>1</td>
+<td><code>1</code></td>
+<td>Block Group 1</td>
+</tr>
+</tbody>
+</table>
+<p>So <code>37119</code> is Mecklenburg County, and <code>37119000101</code> is Census Tract 1.01 in Mecklenburg County. You can read a tract GEOID from left to right like an address.</p>
+<p>GEOIDs matter for two reasons:</p>
+<ol type="1">
+<li><strong>Joining data.</strong> When you attach census numbers to map shapes, or combine census data with a dataset from somewhere else, the GEOID is the column you join on.</li>
+<li><strong>They must stay text.</strong> Many GEOIDs contain meaningful leading zeros. Alabama is <code>01</code>, and the county code for Alamance County, NC is <code>001</code>. If a spreadsheet program or a CSV reader turns the GEOID into a number, those zeros vanish and your joins will quietly fail. Always read GEOIDs as strings.</li>
+</ol>
+</section>
+<section id="tables-and-variables" class="level2">
+<h2 class="anchored" data-anchor-id="tables-and-variables">Tables and variables</h2>
+<p>Census data is organized into <strong>tables</strong>, and each table holds several <strong>variables</strong>. Table IDs start with a letter that tells you what kind of table it is:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Prefix</th>
+<th>Table type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>B</code></td>
+<td>Detailed table</td>
+<td>The most granular ACS tables. These are what the code tutorials mostly use.</td>
+</tr>
+<tr class="even">
+<td><code>C</code></td>
+<td>Collapsed table</td>
+<td>A detailed table with fewer categories</td>
+</tr>
+<tr class="odd">
+<td><code>S</code></td>
+<td>Subject table</td>
+<td>Summaries on one topic, often with percentages already computed</td>
+</tr>
+<tr class="even">
+<td><code>DP</code></td>
+<td>Data profile</td>
+<td>Broad overviews of social, economic, housing, and demographic traits</td>
+</tr>
+<tr class="odd">
+<td><code>P</code>, <code>H</code></td>
+<td>Decennial tables</td>
+<td>Population (<code>P</code>) and housing (<code>H</code>) tables from the decennial census</td>
+</tr>
+</tbody>
+</table>
+<p>A variable ID adds a line number to the table ID. For example, table <code>B19013</code> is <em>Median Household Income in the Past 12 Months</em>. Its first line is <code>B19013_001</code>. In raw downloads and in the Census API, you will see a suffix at the end of the ID:</p>
+<ul>
+<li><code>B19013_001E</code> is the <strong>E</strong>stimate</li>
+<li><code>B19013_001M</code> is the <strong>M</strong>argin of error</li>
+<li><code>P1_001N</code> is a 2020 decennial count, where <strong>N</strong> stands for a number</li>
+</ul>
+</section>
+<section id="downloading-a-table-by-hand" class="level2">
+<h2 class="anchored" data-anchor-id="downloading-a-table-by-hand">Downloading a table by hand</h2>
+<p>Before you write any code, it helps to find a table in the Bureau’s own tool. Let’s download median household income for every county in North Carolina.</p>
+<ol type="1">
+<li>Go to <a href="https://data.census.gov" target="_blank">data.census.gov</a> and click <strong>Advanced Search</strong>.</li>
+<li>In the search box, type <code>B19013</code> and press Enter. Open the table named <strong>Median Household Income in the Past 12 Months</strong>.</li>
+<li>Click the product dropdown near the table title. Choose the most recent <strong>ACS 5-Year Estimates Detailed Tables</strong>.</li>
+<li>Open the <strong>Geos</strong> filter. Choose <strong>County</strong>, then <strong>North Carolina</strong>, then <strong>All Counties within North Carolina</strong>.</li>
+<li>Look over the table in your browser. Notice that each county has both an estimate and a margin of error.</li>
+<li>Click <strong>Download Table</strong> and choose the CSV format. You will receive a ZIP file.</li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>What’s inside the ZIP file?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The ZIP file usually holds a data file and a metadata file that describes each column. Open the data file and look at the first two rows. The first row usually contains column codes such as <code>B19013_001E</code>. The second row often contains longer labels. When you read the file into R or Python, keep the codes as column names and skip the label row.</p>
+</div>
+</div>
+<p>Point-and-click downloads work well for one table and one geography. They become tedious when you need five tables, three years, and two kinds of geography. They are also hard to reproduce. That is why the next tutorials use code.</p>
+</section>
+<section id="other-places-to-find-census-data" class="level2">
+<h2 class="anchored" data-anchor-id="other-places-to-find-census-data">Other places to find census data</h2>
+<ul>
+<li><a href="https://censusreporter.org" target="_blank"><strong>Census Reporter</strong></a> is a free, friendly site for browsing ACS profiles of any place. It is great for a quick sanity check on your numbers.</li>
+<li><a href="https://www.nhgis.org" target="_blank"><strong>IPUMS NHGIS</strong></a> offers historical census tables and boundary files going back to 1790. It is useful if you need to compare places over long periods.</li>
+<li><a href="https://www.census.gov/data/developers.html" target="_blank"><strong>The Census API</strong></a> is the service that the R and Python tutorials call behind the scenes.</li>
+</ul>
+</section>
+<section id="before-the-next-tutorial-get-an-api-key" class="level2">
+<h2 class="anchored" data-anchor-id="before-the-next-tutorial-get-an-api-key">Before the next tutorial: get an API key</h2>
+<p>The Census API requires a free key for every request. Request one now at <a href="https://api.census.gov/data/key_signup.html" target="_blank">https://api.census.gov/data/key_signup.html</a>. The key arrives by email within a few minutes. You have to click a link in that email to activate it.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Treat your key like a password
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Don’t paste your key into a file you plan to push to GitHub. The R and Python tutorials show you how to store it safely.</p>
+</div>
+</div>
+</section>
+<section id="check-your-understanding" class="level2">
+<h2 class="anchored" data-anchor-id="check-your-understanding">Check your understanding</h2>
+<ol type="1">
+<li>You want the poverty rate for every census tract in Mecklenburg County. Which data product and which version should you use?</li>
+<li>What does the GEOID <code>37119005828</code> refer to? Why would the GEOID <code>01001</code> cause trouble in a spreadsheet?</li>
+<li>A friend says Cornelius has a higher median income than Huntersville, based on ACS estimates that differ by $3,000. What would you check before agreeing?</li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Answers
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>The ACS 5-year estimates. Tracts don’t appear in the 1-year data, and the decennial census doesn’t ask about income.</li>
+<li>It is Census Tract 58.28 in Mecklenburg County (<code>37</code> + <code>119</code> + <code>005828</code>). The GEOID <code>01001</code> (Autauga County, Alabama) would become the number <code>1001</code> in a spreadsheet. It would then fail to match the text <code>01001</code> in any other dataset.</li>
+<li>The margins of error. If the two ranges overlap, the difference may not be meaningful.</li>
+</ol>
+</div>
+</div>
+</div>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next steps</h2>
+<ul>
+<li><strong>R users:</strong> continue to <a href="../tutorials/census-r-part1.html">Census Data in R, Part 1</a>.</li>
+<li><strong>Python users:</strong> continue to <a href="../tutorials/census-python-part1.html">Census Data in Python, Part 1</a>.</li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/datasci\.davidson\.edu\/datawrangle");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+      &nbsp;
+    </div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Made with Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

@@ -42,8 +42,79 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-277324e5304f64c6316de80197a6bdd8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-17c35557d8165a53918e039a150c173c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/quarto-contrib/code-window-0.1.0/style.css" rel="stylesheet">
+<script>document.addEventListener("DOMContentLoaded",function(){
+  var DEFAULT_COLLAPSE=null;
+  document.querySelectorAll("pre.cw-auto").forEach(function(pre){
+    var fn=pre.closest("[data-filename]");
+    if(!fn)return;
+    var name=fn.getAttribute("data-filename");
+    if(!name)return;
+    var scaffold=pre.closest(".code-copy-outer-scaffold")||pre.closest(".sourceCode");
+    if(!scaffold)return;
+    var w=document.createElement("div");
+    w.className="code-with-filename code-window-auto";
+    var tb=document.createElement("div");
+    tb.className="code-with-filename-file";
+    var tp=document.createElement("pre");
+    var ts=document.createElement("strong");
+    ts.textContent=name;
+    tp.appendChild(ts);tb.appendChild(tp);
+    scaffold.parentNode.insertBefore(w,scaffold);
+    w.appendChild(tb);w.appendChild(scaffold);
+    pre.classList.remove("cw-auto");
+  });
+  function findMarkerSource(el){
+    return el.querySelector('pre[class*="cw-style-"],pre[class*="cw-collapse-"],pre[data-code-window-lines-label]')
+      ||el.querySelector('[class*="cw-style-"],[class*="cw-collapse-"],[data-code-window-lines-label]');
+  }
+  document.querySelectorAll(".code-with-filename").forEach(function(el){
+    var marker=findMarkerSource(el);
+    var styleApplied=/\bcode-window-(macos|windows|default)\b/.test(el.className);
+    if(!styleApplied){
+      var sm=marker&&marker.className.match(/cw-style-(\w+)/);
+      if(sm){el.classList.add("code-window-"+sm[1]);marker.classList.remove(sm[0]);}
+      else{el.classList.add("code-window-macos");}
+    }
+    var collapse=null;
+    if(marker){
+      var cm=marker.className.match(/cw-collapse-(open|closed)/);
+      if(cm){collapse=cm[1];marker.classList.remove(cm[0]);}
+    }
+    if(collapse===null&&DEFAULT_COLLAPSE){collapse=DEFAULT_COLLAPSE;}
+    if(marker&&marker.hasAttribute("data-code-window-lines-label")){
+      var spec=marker.getAttribute("data-code-window-lines-label");
+      marker.removeAttribute("data-code-window-lines-label");
+      var titleBar=el.querySelector(".code-with-filename-file");
+      if(titleBar&&!titleBar.querySelector(".code-with-filename-lines")){
+        var chip=document.createElement("span");
+        chip.className="code-with-filename-lines";
+        chip.textContent="L"+spec;
+        titleBar.appendChild(chip);
+      }
+    }
+    if(collapse&&!el.classList.contains("code-window-collapsible")){
+      var titleBar=el.querySelector(".code-with-filename-file");
+      if(titleBar){
+        var details=document.createElement("details");
+        details.className=el.className+" code-window-collapsible";
+        if(collapse==="open"){details.open=true;}
+        var summaryEl=document.createElement("summary");
+        summaryEl.className="code-with-filename-file";
+        while(titleBar.firstChild){summaryEl.appendChild(titleBar.firstChild);}
+        titleBar.parentNode.removeChild(titleBar);
+        details.appendChild(summaryEl);
+        while(el.firstChild){details.appendChild(el.firstChild);}
+        el.parentNode.replaceChild(details,el);
+      }
+    }
+  });
+});</script>
 <link href="site_libs/quarto-contrib/accordion/accordion.css" rel="stylesheet">
+<script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -122,8 +193,12 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">FAQ</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./index.html#sponsors"> 
-<span class="menu-text">Sponsors</span></a>
+    <a class="nav-link" href="./index.html#organizers"> 
+<span class="menu-text">Organizers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./tutorials/index.html"> 
+<span class="menu-text">Tutorials</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -194,20 +269,118 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="location" class="level2">
 <h2 data-anchor-id="location">Location</h2>
-<p>Data Wrangle 2026 location is TBD!</p>
-<!-- will be taking place in the Watson Life Sciences building on Davidson's campus. Limited parking is available in the Preyer lot, which is directly across the street at 226 Concord Rd, Davidson, NC 28036. Additional public parking is available along Concord Road.
-
-<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1433.7712338430547!2d-80.84767879290608!3d35.49958731445351!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8856aa3657441de1%3A0x75a76ac021be6677!2sWatson%20Life%20Sciences%2C%20225%20Concord%20Rd%2C%20Davidson%2C%20NC%2028036!5e1!3m2!1sen!2sus!4v1770923375616!5m2!1sen!2sus" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-
-![Map showing DataFest parking locations](img/datafest_parking.png){.lightbox}
-
-![Watson floorplan showing key DataFest locations](img/watson_floorplan.png){.lightbox} -->
+<p>Data Wrangle 2026 will be taking place in the Watson Life Sciences building on Davidson’s campus. Limited parking is available in the Preyer lot, which is directly across the street at 226 Concord Rd, Davidson, NC 28036. Additional public parking is available along Concord Road.</p>
+<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1433.7712338430547!2d-80.84767879290608!3d35.49958731445351!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8856aa3657441de1%3A0x75a76ac021be6677!2sWatson%20Life%20Sciences%2C%20225%20Concord%20Rd%2C%20Davidson%2C%20NC%2028036!5e1!3m2!1sen!2sus!4v1770923375616!5m2!1sen!2sus" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+</iframe>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="images/datafest_parking.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Map showing Data Wrangle parking locations"><img src="images/datafest_parking.png" class="img-fluid figure-img" alt="Map showing Data Wrangle parking locations"></a></p>
+<figcaption>Map showing Data Wrangle parking locations</figcaption>
+</figure>
+</div>
+<p><a href="images/watson_floorplan.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Watson floorplan showing key Data Wrangle locations"><img src="images/watson_floorplan.png" class="img-fluid" alt="Watson floorplan showing key Data Wrangle locations"></a> –&gt;</p>
 <hr>
 </section>
 <section id="schedule" class="level2">
 <h2 data-anchor-id="schedule">Schedule</h2>
-<p>Data Wrangle 2026 schedule is TBD!</p>
+<section id="friday-october-2" class="level3">
+<h3 data-anchor-id="friday-october-2">Friday, October 2</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 8%">
+<col style="width: 16%">
+<col style="width: 58%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Time</th>
+<th></th>
+<th>Location</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>4:30–6:00 PM</td>
+<td>✅</td>
+<td>Watson 140 (Blue)</td>
+<td><strong>Launch party and data reveal!</strong> Early check-in at the welcome desk: get your nametag, t-shirt, swag, and materials! Take a sneak peek at our dataset and get a bite to eat. Come and go as you please!</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="saturday-october-3" class="level3">
+<h3 data-anchor-id="saturday-october-3">Saturday, October 3</h3>
+<p><em>Arrive in Watson 140 by 9:00 AM on Saturday to be entered in a prize drawing!</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 8%">
+<col style="width: 16%">
+<col style="width: 58%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Time</th>
+<th></th>
+<th>Location</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>9:00–10:00 AM</td>
+<td>🥐</td>
+<td>Watson 140 (Blue)</td>
+<td>Check in at the welcome desk if you haven’t already, and pick up a delicious breakfast and coffee</td>
+</tr>
+<tr class="even">
+<td>10:00–10:30 AM</td>
+<td>🧑‍🏫</td>
+<td>Dana 146</td>
+<td><strong>Official kickoff</strong>, presented by The Allison S. and Thomas C. Franco Program on Public Policy and Research</td>
+</tr>
+<tr class="odd">
+<td>10:30 AM–Noon</td>
+<td>🧑‍💻</td>
+<td>Group workspaces</td>
+<td>Work session</td>
+</tr>
+<tr class="even">
+<td>Noon–1:00 PM</td>
+<td>🍕</td>
+<td>Watson 140 (Blue)</td>
+<td>Lunch served</td>
+</tr>
+<tr class="odd">
+<td>1:00–5:30 PM</td>
+<td>🧑‍💻</td>
+<td>Group workspaces</td>
+<td>Work session with your team</td>
+</tr>
+<tr class="even">
+<td>5:30 PM</td>
+<td>🧑‍💻</td>
+<td>Group workspaces</td>
+<td><strong>Presentation slides due</strong></td>
+</tr>
+<tr class="odd">
+<td>5:30 PM</td>
+<td>🍛</td>
+<td>Watson 140 (Blue)</td>
+<td>Dinner served from Thai House</td>
+</tr>
+<tr class="even">
+<td>6:00–7:00 PM</td>
+<td>🏆</td>
+<td>Dana 146</td>
+<td><strong>Presentations and Awards Ceremony</strong></td>
+</tr>
+</tbody>
+</table>
 <hr>
+</section>
 </section>
 <section id="faq" class="level2">
 <h2 data-anchor-id="faq">Frequently Asked Questions (FAQ)</h2>
@@ -266,27 +439,37 @@ ul.task-list li input[type="checkbox"] {
 <p></p>
 <hr>
 </section>
-<section id="sponsors" class="level2">
-<h2 data-anchor-id="sponsors">Sponsors</h2>
+<section id="organizers" class="level2">
+<h2 data-anchor-id="organizers">Organizers</h2>
+<div class="columns">
+<div class="column" style="width:45%;">
+<p><a href="images/Martin Institute for Public Good-Departmental logos—red and black-DC-two lines.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="images/Martin Institute for Public Good-Departmental logos—red and black-DC-two lines.png" class="img-fluid"></a></p>
+<section id="the-martin-institute-for-public-good" class="level3">
+<h3 data-anchor-id="the-martin-institute-for-public-good">The Martin Institute for Public Good</h3>
+<ul>
+<li>Dr.&nbsp;Chris Marsicano ’10</li>
+<li>Dr.&nbsp;Ken Menkhaus</li>
+<li>Dr.&nbsp;Kevin McElrath</li>
+<li>Dr.&nbsp;Stacey Riemer</li>
+</ul>
+</section>
+</div><div class="column" style="width:10%;">
+
+</div><div class="column" style="width:45%;">
+<p><a href="images/Data Science-Departmental logos—red and black-vector.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="images/Data Science-Departmental logos—red and black-vector.png" class="img-fluid"></a></p>
 <section id="department-of-data-science" class="level3">
 <h3 data-anchor-id="department-of-data-science">Department of Data Science</h3>
 <ul>
 <li>Dr.&nbsp;Laurie Heyer</li>
 <li>Dr.&nbsp;Kevin Wang</li>
-<li>Prof.&nbsp;Pete Benbow</li>
+<li>Prof.&nbsp;Pete Benbow ’07</li>
 </ul>
 </section>
-<section id="the-martin-institute-for-public-good" class="level3">
-<h3 data-anchor-id="the-martin-institute-for-public-good">The Martin Institute for Public Good</h3>
-<ul>
-<li>Dr.&nbsp;Chris Marsicano</li>
-<li>Dr.&nbsp;Kevin McElrath</li>
-<li>Dr.&nbsp;Ken Menkhaus</li>
-</ul>
+</div>
+</div>
 
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
@@ -690,13 +873,45 @@ ul.task-list li input[type="checkbox"] {
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p><a href="https://davidson.edu"><img src="images/davidson-wordmark-horizontal-lockup-white_sm.png" class="img-fluid" style="width:50.0%" target="_blank" alt="Davidson College"></a></p>
-</div>
+      &nbsp;
+    </div>
     <div class="nav-footer-right">
 <p>Made with Quarto</p>
 </div>
   </div>
 </footer>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 

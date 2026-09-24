@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Use the tidycensus package to pull ACS and 2020 decennial census data for North Carolina counties and Mecklenburg County census tracts.">
+
+<title>Census Data in R, Part 1: Getting Tables with tidycensus – Public Good Data Wrangle</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../images/Circle-favicon-32x32.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-17c35557d8165a53918e039a150c173c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/quarto-contrib/code-window-0.1.0/style.css" rel="stylesheet">
+<script>document.addEventListener("DOMContentLoaded",function(){
+  var DEFAULT_COLLAPSE=null;
+  document.querySelectorAll("pre.cw-auto").forEach(function(pre){
+    var fn=pre.closest("[data-filename]");
+    if(!fn)return;
+    var name=fn.getAttribute("data-filename");
+    if(!name)return;
+    var scaffold=pre.closest(".code-copy-outer-scaffold")||pre.closest(".sourceCode");
+    if(!scaffold)return;
+    var w=document.createElement("div");
+    w.className="code-with-filename code-window-auto";
+    var tb=document.createElement("div");
+    tb.className="code-with-filename-file";
+    var tp=document.createElement("pre");
+    var ts=document.createElement("strong");
+    ts.textContent=name;
+    tp.appendChild(ts);tb.appendChild(tp);
+    scaffold.parentNode.insertBefore(w,scaffold);
+    w.appendChild(tb);w.appendChild(scaffold);
+    pre.classList.remove("cw-auto");
+  });
+  function findMarkerSource(el){
+    return el.querySelector('pre[class*="cw-style-"],pre[class*="cw-collapse-"],pre[data-code-window-lines-label]')
+      ||el.querySelector('[class*="cw-style-"],[class*="cw-collapse-"],[data-code-window-lines-label]');
+  }
+  document.querySelectorAll(".code-with-filename").forEach(function(el){
+    var marker=findMarkerSource(el);
+    var styleApplied=/\bcode-window-(macos|windows|default)\b/.test(el.className);
+    if(!styleApplied){
+      var sm=marker&&marker.className.match(/cw-style-(\w+)/);
+      if(sm){el.classList.add("code-window-"+sm[1]);marker.classList.remove(sm[0]);}
+      else{el.classList.add("code-window-macos");}
+    }
+    var collapse=null;
+    if(marker){
+      var cm=marker.className.match(/cw-collapse-(open|closed)/);
+      if(cm){collapse=cm[1];marker.classList.remove(cm[0]);}
+    }
+    if(collapse===null&&DEFAULT_COLLAPSE){collapse=DEFAULT_COLLAPSE;}
+    if(marker&&marker.hasAttribute("data-code-window-lines-label")){
+      var spec=marker.getAttribute("data-code-window-lines-label");
+      marker.removeAttribute("data-code-window-lines-label");
+      var titleBar=el.querySelector(".code-with-filename-file");
+      if(titleBar&&!titleBar.querySelector(".code-with-filename-lines")){
+        var chip=document.createElement("span");
+        chip.className="code-with-filename-lines";
+        chip.textContent="L"+spec;
+        titleBar.appendChild(chip);
+      }
+    }
+    if(collapse&&!el.classList.contains("code-window-collapsible")){
+      var titleBar=el.querySelector(".code-with-filename-file");
+      if(titleBar){
+        var details=document.createElement("details");
+        details.className=el.className+" code-window-collapsible";
+        if(collapse==="open"){details.open=true;}
+        var summaryEl=document.createElement("summary");
+        summaryEl.className="code-with-filename-file";
+        while(titleBar.firstChild){summaryEl.appendChild(titleBar.firstChild);}
+        titleBar.parentNode.removeChild(titleBar);
+        details.appendChild(summaryEl);
+        while(el.firstChild){details.appendChild(el.firstChild);}
+        el.parentNode.replaceChild(details,el);
+      }
+    }
+  });
+});</script>
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<meta property="og:title" content="Census Data in R, Part 1: Getting Tables with tidycensus – Public Good Data Wrangle">
+<meta property="og:description" content="Use the tidycensus package to pull ACS and 2020 decennial census data for North Carolina counties and Mecklenburg County census tracts.">
+<meta property="og:site_name" content="Public Good Data Wrangle">
+</head>
+
+<body class="nav-fixed fullcontent quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Public Good Data Wrangle</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://forms.gle/Fbp3XjCReeLyfgcr7"> 
+<span class="menu-text"><span class="btn btn-light">Register now!</span></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#about"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#location"> 
+<span class="menu-text">Location</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#schedule"> 
+<span class="menu-text">Schedule</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#faq"> 
+<span class="menu-text">FAQ</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html#organizers"> 
+<span class="menu-text">Organizers</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../tutorials/index.html"> 
+<span class="menu-text">Tutorials</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Census Data in R, Part 1: Getting Tables with tidycensus</h1>
+<p class="subtitle lead">ACS and decennial data for North Carolina counties and census tracts</p>
+</div>
+
+<div>
+  <div class="description">
+    Use the tidycensus package to pull ACS and 2020 decennial census data for North Carolina counties and Mecklenburg County census tracts.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>About this tutorial
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Time:</strong> about 25 minutes. <strong>Prerequisites:</strong> R and RStudio (or Positron) installed, basic familiarity with the tidyverse, and a Census API key. If you haven’t read <a href="../tutorials/census-101.html">Census 101</a> yet, skim it first.</p>
+<p>By the end, you will be able to:</p>
+<ul>
+<li>store your Census API key so that R can find it</li>
+<li>pull ACS estimates for every county in North Carolina</li>
+<li>pull ACS estimates for census tracts in one or more counties</li>
+<li>find the variable IDs you need</li>
+<li>compute percentages and their margins of error</li>
+<li>pull 2020 decennial census counts</li>
+</ul>
+</div>
+</div>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p><a href="https://walker-data.com/tidycensus/" target="_blank">tidycensus</a> is an R package written by Kyle Walker. It talks to the Census API for you and returns tidy data frames. Install it along with the tidyverse if you don’t have them yet:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(<span class="st">"tidycensus"</span>, <span class="st">"tidyverse"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Then load both packages:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidycensus)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="store-your-api-key" class="level3">
+<h3 class="anchored" data-anchor-id="store-your-api-key">Store your API key</h3>
+<p>Run the line below once, using the key from your email in place of the placeholder. The <code>install = TRUE</code> argument saves the key to a file named <code>.Renviron</code> in your home folder. R reads that file each time it starts, so you never have to paste the key into a script again.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">census_api_key</span>(<span class="st">"YOUR_KEY_GOES_HERE"</span>, <span class="at">install =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Restart R after you run it. You can confirm that R found the key with this line:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.getenv</span>(<span class="st">"CENSUS_API_KEY"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Keep the key out of your scripts
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>After you have run <code>census_api_key()</code> once, delete that line from your script. That way you won’t push your key to GitHub by accident.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="your-first-request-income-by-county" class="level2">
+<h2 class="anchored" data-anchor-id="your-first-request-income-by-county">Your first request: income by county</h2>
+<p><code>get_acs()</code> pulls data from the American Community Survey. Let’s get median household income (variable <code>B19013_001</code>) for every county in North Carolina:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>nc_income <span class="ot">&lt;-</span> <span class="fu">get_acs</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"county"</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="st">"B19013_001"</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2024</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020-2024 5-year ACS</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>nc_income</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 100 × 5
+   GEOID NAME                             variable   estimate   moe
+   &lt;chr&gt; &lt;chr&gt;                            &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt;
+ 1 37001 Alamance County, North Carolina  B19013_001    65651  1854
+ 2 37003 Alexander County, North Carolina B19013_001    65354  4962
+ 3 37005 Alleghany County, North Carolina B19013_001    47172  4894
+ 4 37007 Anson County, North Carolina     B19013_001    47302  5753
+ 5 37009 Ashe County, North Carolina      B19013_001    56866  4577
+ 6 37011 Avery County, North Carolina     B19013_001    61428  7429
+ 7 37013 Beaufort County, North Carolina  B19013_001    58357  3205
+ 8 37015 Bertie County, North Carolina    B19013_001    48750  8791
+ 9 37017 Bladen County, North Carolina    B19013_001    42422  6049
+10 37019 Brunswick County, North Carolina B19013_001    77024  2734
+# ℹ 90 more rows</code></pre>
+</div>
+</div>
+<p>You should get a tibble with 100 rows, one per county, and five columns:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>What it holds</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>GEOID</code></td>
+<td>The county’s FIPS code, such as <code>37119</code> for Mecklenburg</td>
+</tr>
+<tr class="even">
+<td><code>NAME</code></td>
+<td>A readable name, such as “Mecklenburg County, North Carolina”</td>
+</tr>
+<tr class="odd">
+<td><code>variable</code></td>
+<td>The variable ID you requested</td>
+</tr>
+<tr class="even">
+<td><code>estimate</code></td>
+<td>The ACS estimate</td>
+</tr>
+<tr class="odd">
+<td><code>moe</code></td>
+<td>The margin of error, at a 90 percent confidence level</td>
+</tr>
+</tbody>
+</table>
+<p>A few defaults are worth knowing about:</p>
+<ul>
+<li><code>get_acs()</code> uses the <strong>5-year</strong> ACS unless you set <code>survey = "acs1"</code>. With <code>year = 2024</code>, you get the 2020 to 2024 estimates.</li>
+<li>Always set <code>year</code> yourself. The default changes as new data comes out. Setting it explicitly keeps your results reproducible.</li>
+<li>You can write states and counties as names (<code>"North Carolina"</code>), abbreviations (<code>"NC"</code>), or FIPS codes (<code>"37"</code>).</li>
+</ul>
+<p>Now use regular dplyr to explore:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>nc_income <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(estimate)) <span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 5
+  GEOID NAME                             variable   estimate   moe
+  &lt;chr&gt; &lt;chr&gt;                            &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt;
+1 37183 Wake County, North Carolina      B19013_001   105768  1626
+2 37179 Union County, North Carolina     B19013_001   102900  1953
+3 37037 Chatham County, North Carolina   B19013_001    94317  4141
+4 37053 Currituck County, North Carolina B19013_001    93511  8425
+5 37029 Camden County, North Carolina    B19013_001    91078 14321</code></pre>
+</div>
+</div>
+</section>
+<section id="naming-variables-and-requesting-several-at-once" class="level2">
+<h2 class="anchored" data-anchor-id="naming-variables-and-requesting-several-at-once">Naming variables and requesting several at once</h2>
+<p>Variable IDs are hard to remember. You can give them names inside <code>c()</code>. You can also request several variables in one call:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>nc_profile <span class="ot">&lt;-</span> <span class="fu">get_acs</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"county"</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_income =</span> <span class="st">"B19013_001"</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_age =</span> <span class="st">"B01002_001"</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_pop =</span> <span class="st">"B01003_001"</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2024</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020-2024 5-year ACS</code></pre>
+</div>
+</div>
+<p>This result is in <strong>long</strong> format. Each county appears three times, once per variable. Long data works well with ggplot2 and <code>group_by()</code>. If you’d rather have one row per county, ask for <strong>wide</strong> output:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>nc_profile_wide <span class="ot">&lt;-</span> <span class="fu">get_acs</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"county"</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_income =</span> <span class="st">"B19013_001"</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_age =</span> <span class="st">"B01002_001"</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_pop =</span> <span class="st">"B01003_001"</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">output =</span> <span class="st">"wide"</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2024</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020-2024 5-year ACS</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(nc_profile_wide)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "GEOID"          "NAME"           "median_incomeE" "median_incomeM"
+[5] "median_ageE"    "median_ageM"    "total_popE"     "total_popM"    </code></pre>
+</div>
+</div>
+<p>In wide output, tidycensus adds an <code>E</code> suffix to estimates and an <code>M</code> suffix to margins of error. You get columns such as <code>median_incomeE</code> and <code>median_incomeM</code>.</p>
+</section>
+<section id="finding-variables" class="level2">
+<h2 class="anchored" data-anchor-id="finding-variables">Finding variables</h2>
+<p>The 5-year ACS has more than 25,000 variables. <code>load_variables()</code> downloads the full list so you can search it:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>acs_vars <span class="ot">&lt;-</span> <span class="fu">load_variables</span>(<span class="dv">2024</span>, <span class="st">"acs5"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>In RStudio, run <code>View(acs_vars)</code> and type in the search box to filter. You can also search with code. The label column describes what each variable measures. The concept column names the table it belongs to.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>acs_vars <span class="sc">|&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_detect</span>(concept, <span class="fu">regex</span>(<span class="st">"median household income"</span>, <span class="at">ignore_case =</span> <span class="cn">TRUE</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name, label, concept) <span class="sc">|&gt;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 3
+   name        label                                                     concept
+   &lt;chr&gt;       &lt;chr&gt;                                                     &lt;chr&gt;  
+ 1 B19013A_001 Estimate!!Median household income in the past 12 months … Median…
+ 2 B19013B_001 Estimate!!Median household income in the past 12 months … Median…
+ 3 B19013C_001 Estimate!!Median household income in the past 12 months … Median…
+ 4 B19013D_001 Estimate!!Median household income in the past 12 months … Median…
+ 5 B19013E_001 Estimate!!Median household income in the past 12 months … Median…
+ 6 B19013F_001 Estimate!!Median household income in the past 12 months … Median…
+ 7 B19013G_001 Estimate!!Median household income in the past 12 months … Median…
+ 8 B19013H_001 Estimate!!Median household income in the past 12 months … Median…
+ 9 B19013I_001 Estimate!!Median household income in the past 12 months … Median…
+10 B19013_001  Estimate!!Median household income in the past 12 months … Median…
+11 B19019_001  Estimate!!Total:                                          Median…
+12 B19019_002  Estimate!!Total:!!1-person households                     Median…</code></pre>
+</div>
+</div>
+<p>Look closely at the results. You will see <code>B19013_001</code> along with <code>B19013A_001</code> through <code>B19013I_001</code>. The lettered versions repeat the table for specific racial and ethnic groups. For example, <code>B19013B</code> covers households headed by someone who is Black alone. Tables with <code>PR</code> in the ID cover Puerto Rico only.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Reading labels
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Labels use <code>!!</code> to separate levels of a table. For example, <code>Estimate!!Total:!!Income in the past 12 months below poverty level:</code> means “of the total, the number with income below the poverty level.” The first row of most tables (the variable ending in <code>_001</code>) is the total for that table. You will often use it as a denominator.</p>
+</div>
+</div>
+</section>
+<section id="computing-percentages" class="level2">
+<h2 class="anchored" data-anchor-id="computing-percentages">Computing percentages</h2>
+<p>Counts are hard to compare across counties of very different sizes. Mecklenburg has more than a million people. Tyrrell County has about 3,000. Percentages make fairer comparisons.</p>
+<p>Table <code>B17001</code> counts people by poverty status. <code>B17001_002</code> is the number of people below the poverty level. <code>B17001_001</code> is the number of people for whom poverty status is determined. The <code>summary_var</code> argument fetches the denominator alongside your variable:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>nc_poverty <span class="ot">&lt;-</span> <span class="fu">get_acs</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"county"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(<span class="at">below_poverty =</span> <span class="st">"B17001_002"</span>),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">summary_var =</span> <span class="st">"B17001_001"</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2024</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_poverty =</span> <span class="dv">100</span> <span class="sc">*</span> estimate <span class="sc">/</span> summary_est,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_poverty_moe =</span> <span class="dv">100</span> <span class="sc">*</span> <span class="fu">moe_prop</span>(estimate, summary_est, moe, summary_moe)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020-2024 5-year ACS</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>nc_poverty <span class="sc">|&gt;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(NAME, pct_poverty, pct_poverty_moe) <span class="sc">|&gt;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(pct_poverty))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 100 × 3
+   NAME                              pct_poverty pct_poverty_moe
+   &lt;chr&gt;                                   &lt;dbl&gt;           &lt;dbl&gt;
+ 1 Robeson County, North Carolina           27.2            1.16
+ 2 Scotland County, North Carolina          25.8            2.06
+ 3 Watauga County, North Carolina           25.5            2.09
+ 4 Richmond County, North Carolina          25.2            3.65
+ 5 Washington County, North Carolina        24.1            4.71
+ 6 Hertford County, North Carolina          22.9            2.82
+ 7 Halifax County, North Carolina           22.8            2.30
+ 8 Hyde County, North Carolina              22.2            8.20
+ 9 Bladen County, North Carolina            22.0            3.16
+10 Lenoir County, North Carolina            22.0            2.37
+# ℹ 90 more rows</code></pre>
+</div>
+</div>
+<p>The <code>summary_var</code> values arrive in the <code>summary_est</code> and <code>summary_moe</code> columns. <code>moe_prop()</code> is a tidycensus helper that computes the margin of error for a proportion. When you derive a new number from ACS estimates, you should derive a new MOE for it too.</p>
+</section>
+<section id="going-smaller-census-tracts" class="level2">
+<h2 class="anchored" data-anchor-id="going-smaller-census-tracts">Going smaller: census tracts</h2>
+<p>To look inside a county, switch <code>geography</code> to <code>"tract"</code>. Tract requests need a state. They usually include one or more counties as well.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>meck_income <span class="ot">&lt;-</span> <span class="fu">get_acs</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"tract"</span>,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">county =</span> <span class="st">"Mecklenburg"</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(<span class="at">median_income =</span> <span class="st">"B19013_001"</span>),</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2024</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020-2024 5-year ACS</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>meck_income</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 305 × 5
+   GEOID       NAME                                      variable estimate   moe
+   &lt;chr&gt;       &lt;chr&gt;                                     &lt;chr&gt;       &lt;dbl&gt; &lt;dbl&gt;
+ 1 37119000101 Census Tract 1.01; Mecklenburg County; N… median_…   119044 19607
+ 2 37119000102 Census Tract 1.02; Mecklenburg County; N… median_…   134506 13081
+ 3 37119000103 Census Tract 1.03; Mecklenburg County; N… median_…   130114 25459
+ 4 37119000104 Census Tract 1.04; Mecklenburg County; N… median_…   107949 16118
+ 5 37119000301 Census Tract 3.01; Mecklenburg County; N… median_…    91053 27082
+ 6 37119000302 Census Tract 3.02; Mecklenburg County; N… median_…    81641 26694
+ 7 37119000401 Census Tract 4.01; Mecklenburg County; N… median_…    79458 25974
+ 8 37119000402 Census Tract 4.02; Mecklenburg County; N… median_…    76504 12793
+ 9 37119000501 Census Tract 5.01; Mecklenburg County; N… median_…    85833 44076
+10 37119000502 Census Tract 5.02; Mecklenburg County; N… median_…    93399 12184
+# ℹ 295 more rows</code></pre>
+</div>
+</div>
+<p>That should return 305 tracts. To cover the area around Davidson, pass several counties at once:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>lkn_income <span class="ot">&lt;-</span> <span class="fu">get_acs</span>(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"tract"</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">county =</span> <span class="fu">c</span>(<span class="st">"Mecklenburg"</span>, <span class="st">"Iredell"</span>, <span class="st">"Cabarrus"</span>),</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(<span class="at">median_income =</span> <span class="st">"B19013_001"</span>),</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2024</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020-2024 5-year ACS</code></pre>
+</div>
+</div>
+<section id="watch-the-margins-of-error" class="level3">
+<h3 class="anchored" data-anchor-id="watch-the-margins-of-error">Watch the margins of error</h3>
+<p>Tract estimates rest on small samples, so their MOEs are much larger than county MOEs. A quick way to spot shaky estimates is to compare each MOE to its estimate:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>meck_income <span class="sc">|&gt;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">moe_ratio =</span> moe <span class="sc">/</span> estimate) <span class="sc">|&gt;</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(moe_ratio)) <span class="sc">|&gt;</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(NAME, estimate, moe, moe_ratio) <span class="sc">|&gt;</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 4
+   NAME                                                 estimate   moe moe_ratio
+   &lt;chr&gt;                                                   &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;
+ 1 Census Tract 56.22; Mecklenburg County; North Carol…    14821 13439     0.907
+ 2 Census Tract 49; Mecklenburg County; North Carolina     40000 33460     0.836
+ 3 Census Tract 58.52; Mecklenburg County; North Carol…    70972 44217     0.623
+ 4 Census Tract 56.09; Mecklenburg County; North Carol…    24700 15011     0.608
+ 5 Census Tract 9; Mecklenburg County; North Carolina     102946 60559     0.588
+ 6 Census Tract 38.02; Mecklenburg County; North Carol…    57500 32766     0.570
+ 7 Census Tract 56.26; Mecklenburg County; North Carol…    87908 48056     0.547
+ 8 Census Tract 62.18; Mecklenburg County; North Carol…   171250 92762     0.542
+ 9 Census Tract 30.08; Mecklenburg County; North Carol…   110250 56616     0.514
+10 Census Tract 5.01; Mecklenburg County; North Caroli…    85833 44076     0.514</code></pre>
+</div>
+</div>
+<p>A tract whose MOE is 30 or 40 percent of its estimate deserves a caution note in your presentation. You may also notice some <code>NA</code> estimates. In Mecklenburg, they belong to tracts 9801, 9802, and 9803. Tracts numbered in the 9800s are <em>special land-use tracts</em> that cover places like airports and large parks. Few or no people live in them, so the Bureau can’t compute an income.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Top-coded values
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Sort <code>meck_income</code> by <code>estimate</code> from highest to lowest and look at the top tract. Its estimate is exactly <code>250001</code>, and its MOE is <code>NA</code>. That isn’t a real income. The ACS <em>top-codes</em> medians, so <code>250001</code> means “$250,000 or more.” Keep this in mind if you average incomes or rank the wealthiest tracts.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="the-2020-decennial-census" class="level2">
+<h2 class="anchored" data-anchor-id="the-2020-decennial-census">The 2020 decennial census</h2>
+<p><code>get_decennial()</code> works much like <code>get_acs()</code>. There are two differences. You need to name a <strong>summary file</strong> with <code>sumfile</code>, and the results come back in a column called <code>value</code> because decennial data has no margin of error.</p>
+<p>Total population by county from the Demographic and Housing Characteristics file:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>nc_pop_2020 <span class="ot">&lt;-</span> <span class="fu">get_decennial</span>(</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"county"</span>,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(<span class="at">total_pop =</span> <span class="st">"P1_001N"</span>),</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2020</span>,</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">sumfile =</span> <span class="st">"dhc"</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020 decennial Census</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using the Demographic and Housing Characteristics File</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Note: 2020 decennial Census data use differential privacy, a technique that
+introduces errors into data to preserve respondent confidentiality.
+ℹ Small counts should be interpreted with caution.
+ℹ See https://www.census.gov/library/fact-sheets/2021/protecting-the-confidentiality-of-the-2020-census-redistricting-data.html for additional guidance.
+This message is displayed once per session.</code></pre>
+</div>
+</div>
+<p>The Redistricting file (<code>sumfile = "pl"</code>) has race and ethnicity counts at every level of geography. Here is the share of each Mecklenburg tract’s population that identifies as Black alone:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>meck_black <span class="ot">&lt;-</span> <span class="fu">get_decennial</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">geography =</span> <span class="st">"tract"</span>,</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">state =</span> <span class="st">"NC"</span>,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">county =</span> <span class="st">"Mecklenburg"</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">variables =</span> <span class="fu">c</span>(<span class="at">black_alone =</span> <span class="st">"P1_004N"</span>),</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">summary_var =</span> <span class="st">"P1_001N"</span>,</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="dv">2020</span>,</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">sumfile =</span> <span class="st">"pl"</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pct_black =</span> <span class="dv">100</span> <span class="sc">*</span> value <span class="sc">/</span> summary_value)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Getting data from the 2020 decennial Census</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Using the PL 94-171 Redistricting Data Summary File</code></pre>
+</div>
+</div>
+<p>You can browse decennial variables the same way as ACS variables, with <code>load_variables(2020, "pl")</code> or <code>load_variables(2020, "dhc")</code>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Which one should I use?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Use the decennial census for population counts and basic demographics in 2020. Use the ACS for anything about income, poverty, education, employment, or housing costs. Use it too when you need something more recent than 2020.</p>
+</div>
+</div>
+</section>
+<section id="saving-your-data" class="level2">
+<h2 class="anchored" data-anchor-id="saving-your-data">Saving your data</h2>
+<p>Save your results as a CSV so your teammates can use them:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(nc_poverty, <span class="st">"nc_poverty_2024.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>When you read the file back, tell readr that <code>GEOID</code> is text. Otherwise it may guess that the column is a number and drop leading zeros:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40" data-filename="r"><pre class="sourceCode r cw-auto code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>nc_poverty <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"nc_poverty_2024.csv"</span>,</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">col_types =</span> <span class="fu">cols</span>(<span class="at">GEOID =</span> <span class="fu">col_character</span>())</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="try-it-yourself" class="level2">
+<h2 class="anchored" data-anchor-id="try-it-yourself">Try it yourself</h2>
+<ol type="1">
+<li>Find the variable for the median gross rent (hint: search the concept column for “median gross rent”). Pull it for every North Carolina county. Which five counties have the highest rent?</li>
+<li>Use <code>summary_var</code> to compute the percentage of households in each Mecklenburg tract that have no vehicle available. Table <code>B08201</code> is a good place to start. Which tracts have the largest MOEs?</li>
+<li>Compare total population in 2020 (decennial) with the 2024 ACS 5-year estimate of total population for each county. Which counties seem to be growing fastest? Why should you be cautious about this comparison?</li>
+</ol>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">Further reading</h2>
+<p>From Kyle Walker’s <a href="https://walker-data.com/census-r/" target="_blank"><em>Analyzing US Census Data</em></a>:</p>
+<ul>
+<li><a href="https://walker-data.com/census-r/an-introduction-to-tidycensus.html" target="_blank">Chapter 2: An introduction to tidycensus</a></li>
+<li><a href="https://walker-data.com/census-r/wrangling-census-data-with-tidyverse-tools.html" target="_blank">Chapter 3: Wrangling Census data with tidyverse tools</a>, especially the sections on margins of error</li>
+</ul>
+<p><strong>Next:</strong> <a href="../tutorials/census-r-part2.html">Census Data in R, Part 2: Mapping</a></p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/datasci\.davidson\.edu\/datawrangle");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+      &nbsp;
+    </div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Made with Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

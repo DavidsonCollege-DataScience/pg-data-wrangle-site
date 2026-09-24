@@ -1,0 +1,20 @@
+---
+title: "Tutorials"
+subtitle: "Short, hands-on guides to working with census data"
+listing:
+  contents:
+    - "*.qmd"
+  sort: "order"
+  type: table
+  fields: [title, description]
+  field-display-names:
+    title: "Tutorial"
+  sort-ui: false
+  filter-ui: false
+---
+
+Each tutorial takes 30 minutes or less. If you are new to census data, start with **Census 101**. Then pick the R track or the Python track. Both tracks cover the same ground, so you only need one.
+
+Before you begin either coding track, [request a free Census API key](https://api.census.gov/data/key_signup.html){target="_blank"}. It arrives by email within a few minutes.
+
+Much of this material draws on Kyle Walker's free online book, [*Analyzing US Census Data: Methods, Maps, and Models in R*](https://walker-data.com/census-r/){target="_blank"}. It is an excellent next step whichever language you use.

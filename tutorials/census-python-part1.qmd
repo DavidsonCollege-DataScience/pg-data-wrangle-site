@@ -1,0 +1,445 @@
+---
+title: "Census Data in Python, Part 1: The Census API with requests and Polars"
+subtitle: "ACS and decennial data for North Carolina counties and census tracts"
+description: "Call the Census API directly with requests, load the results into Polars, and build a reusable function for pulling ACS and decennial data."
+order: 4
+---
+
+::: {.callout-note}
+## About this tutorial
+
+**Time:** about 30 minutes. **Prerequisites:** Python 3.10 or newer, basic familiarity with data frames, and a Census API key. If you haven't read [Census 101](census-101.qmd) yet, skim it first.
+
+By the end, you will be able to:
+
+- store your Census API key safely
+- read and build a Census API request URL
+- load API results into a Polars DataFrame and clean them
+- write a reusable function for pulling census data
+- pull ACS data for counties and census tracts, and 2020 decennial data
+- find the variable IDs you need
+:::
+
+## Why talk to the API directly?
+
+R users have [tidycensus](census-r-part1.qmd), which hides the Census API behind friendly functions. Python has no package that plays the same role quite as smoothly. The good news is that the API itself is simple. A request is just a URL, and the response is just a table in JSON format. Once you understand the pieces, a short function gives you most of what tidycensus offers.
+
+This tutorial uses three libraries:
+
+- [requests](https://requests.readthedocs.io){target="_blank"} sends the request to the API
+- [Polars](https://docs.pola.rs){target="_blank"} holds and cleans the results
+- [python-dotenv](https://pypi.org/project/python-dotenv/){target="_blank"} loads your API key from a file
+
+```bash
+pip install requests polars python-dotenv
+```
+
+## Store your API key
+
+Create a file named `.env` in your project folder. Put one line in it, using your own key:
+
+```
+CENSUS_API_KEY=your_key_goes_here
+```
+
+Then load it at the top of your script or notebook:
+
+```{python}
+import os
+
+import polars as pl
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("CENSUS_API_KEY")
+```
+
+`load_dotenv()` looks for `.env` in the folder that holds your script and then in each folder above it. If `API_KEY` comes back as `None`, move `.env` into the same folder as your script or notebook.
+
+::: {.callout-warning}
+## Keep `.env` out of Git
+Add `.env` to your project's `.gitignore` file before you commit anything. Your key should never appear on GitHub.
+:::
+
+## Anatomy of a request
+
+Every Census API request is a URL. Here is one that asks for median household income in every North Carolina county:
+
+```
+https://api.census.gov/data/2024/acs/acs5?get=NAME,B19013_001E,B19013_001M&for=county:*&in=state:37&key=YOUR_KEY
+```
+
+It has five parts:
+
+| Part | Example | Meaning |
+|----|----|----|
+| Year | `2024` | The data vintage. For the 5-year ACS, 2024 means 2020 to 2024. |
+| Dataset | `acs/acs5` | The ACS 5-year detailed tables. Others include `acs/acs1`, `acs/acs5/subject`, and `dec/dhc`. |
+| `get` | `NAME,B19013_001E,B19013_001M` | The variables you want, separated by commas |
+| `for` | `county:*` | The geography level you want. `*` means "all of them." |
+| `in` | `state:37` | A parent geography that limits the results. `37` is North Carolina's FIPS code. |
+
+Try it. Paste the URL into your browser with your key in place of `YOUR_KEY`. You will see rows of text in square brackets. That is the raw JSON response.
+
+::: {.callout-important}
+## The API needs FIPS codes
+tidycensus accepts names like `"Mecklenburg"`. The raw API doesn't. You must use numeric FIPS codes such as `37` for North Carolina and `119` for Mecklenburg County. You will learn how to look them up later in this tutorial.
+:::
+
+## Making the request in Python
+
+Rather than building the URL by hand, give requests a dictionary of parameters. It assembles the URL and handles any special characters for you:
+
+```{python}
+url = "https://api.census.gov/data/2024/acs/acs5"
+params = {
+    "get": "NAME,B19013_001E,B19013_001M",
+    "for": "county:*",
+    "in": "state:37",
+    "key": API_KEY,
+}
+
+response = requests.get(url, params=params)
+response.status_code
+```
+
+A status code of `200` usually means success. Now look at the data:
+
+```{python}
+rows = response.json()
+rows[:3]
+```
+
+The response is a **list of lists**. The first inner list is the header row. Every list after that is one county.
+
+::: {.callout-tip}
+## When the key is wrong
+If your key is missing or invalid, the API still returns status `200`. It sends back an HTML error page instead of data, and `response.json()` fails with a confusing `JSONDecodeError`. When you see that error, check `response.url`. If it ends in `missing_key.html` or `invalid_key.html`, the problem is your key. Remember that you have to activate a new key through the link in your email.
+:::
+
+## Loading the results into Polars
+
+Pass the header row as the column names and the remaining rows as data:
+
+```{python}
+nc_income = pl.DataFrame(rows[1:], schema=rows[0], orient="row")
+nc_income.head()
+```
+
+Look at the data types under each column name. **Every column is a string**, including the numbers. The API sends everything as text. Cleaning takes three steps:
+
+1. Convert the estimate and MOE columns to numbers.
+2. Build a `GEOID` by pasting the state and county codes together.
+3. Give the columns readable names.
+
+```{python}
+nc_income = (
+    nc_income
+    .with_columns(
+        pl.col("B19013_001E", "B19013_001M").cast(pl.Float64),
+        pl.concat_str("state", "county").alias("GEOID"),
+    )
+    .rename({"B19013_001E": "median_income", "B19013_001M": "median_income_moe"})
+    .select("GEOID", "NAME", "median_income", "median_income_moe")
+)
+
+nc_income.sort("median_income", descending=True).head(5)
+```
+
+Notice that `GEOID` stays a string. That preserves the leading zeros in county codes like `001`.
+
+### Watch for missing value codes
+
+The API doesn't send blanks for missing values. It sends large negative numbers such as `-666666666`. Each code has a specific meaning, such as "too few sample cases to compute an estimate." None of them are real values, and they will wreck an average or a color scale if you leave them in. Estimates and MOEs are never negative, so it is safe to turn every negative value into a null:
+
+```{python}
+nc_income = nc_income.with_columns(
+    pl.when(pl.col(c) < 0).then(None).otherwise(pl.col(c)).alias(c)
+    for c in ["median_income", "median_income_moe"]
+)
+```
+
+You rarely see these codes at the county level. They are common at the tract level.
+
+## A reusable function
+
+You don't want to repeat all of those steps for every request. The function below wraps them up. It takes a dictionary that maps readable names to variable IDs. It returns a clean DataFrame with a `GEOID` column.
+
+```{python}
+def get_census(dataset, year, variables, geo_for, geo_in=None):
+    """Request data from the Census API and return a clean Polars DataFrame.
+
+    variables maps new column names to Census variable IDs, for example
+    {"median_income": "B19013_001E"}.
+    """
+    url = f"https://api.census.gov/data/{year}/{dataset}"
+    params = {
+        "get": ",".join(["NAME", *variables.values()]),
+        "for": geo_for,
+        "key": API_KEY,
+    }
+    if geo_in is not None:
+        params["in"] = geo_in
+
+    response = requests.get(url, params=params)
+    if response.status_code != 200:
+        raise ValueError(f"Census API error: {response.text}")
+    if response.url.endswith("_key.html"):
+        raise ValueError(f"Problem with your API key. See {response.url}")
+
+    rows = response.json()
+    df = pl.DataFrame(rows[1:], schema=rows[0], orient="row")
+
+    # Geography columns (state, county, tract, ...) come after the variables
+    geo_cols = df.columns[len(variables) + 1:]
+    new_names = list(variables.keys())
+
+    return (
+        df
+        .rename(dict(zip(variables.values(), new_names)))
+        .with_columns(
+            pl.col(new_names).cast(pl.Float64),
+            pl.concat_str(geo_cols).alias("GEOID"),
+        )
+        .with_columns(
+            pl.when(pl.col(c) < 0).then(None).otherwise(pl.col(c)).alias(c)
+            for c in new_names
+        )
+        .select("GEOID", "NAME", *new_names)
+    )
+```
+
+Now the request from earlier takes only a few lines:
+
+```{python}
+nc_income = get_census(
+    dataset="acs/acs5",
+    year=2024,
+    variables={
+        "median_income": "B19013_001E",
+        "median_income_moe": "B19013_001M",
+    },
+    geo_for="county:*",
+    geo_in="state:37",
+)
+```
+
+::: {.callout-tip}
+## Save the function for later
+Copy `get_census()`, together with the import and API key lines above it, into a file named `census_helpers.py` in your project folder. Part 2 imports it with `from census_helpers import get_census`.
+:::
+
+## Several variables at once
+
+Add more entries to the dictionary. One API request can hold up to 50 variables.
+
+```{python}
+nc_profile = get_census(
+    dataset="acs/acs5",
+    year=2024,
+    variables={
+        "median_income": "B19013_001E",
+        "median_age": "B01002_001E",
+        "total_pop": "B01003_001E",
+    },
+    geo_for="county:*",
+    geo_in="state:37",
+)
+```
+
+This returns one row per county with one column per variable. That is what tidycensus calls "wide" format.
+
+## Finding variables
+
+There are two good ways to find variable IDs.
+
+**Browse in your browser.** Every dataset has a searchable list of its variables. For the 2024 ACS 5-year, it lives at <https://api.census.gov/data/2024/acs/acs5/variables.html>{target="_blank"}. The page is very large, so use your browser's find feature (Ctrl+F or Cmd+F).
+
+**Search with Polars.** The same list is available as JSON. Load it into a DataFrame and filter it:
+
+```{python}
+meta = requests.get("https://api.census.gov/data/2024/acs/acs5/variables.json").json()
+
+acs_vars = pl.DataFrame(
+    [
+        {"name": name, "label": info["label"], "concept": info.get("concept")}
+        for name, info in meta["variables"].items()
+    ]
+)
+
+(
+    acs_vars
+    .filter(pl.col("concept").str.contains("(?i)median household income"))
+    .sort("name")
+    .head(12)
+)
+```
+
+The `(?i)` at the start of the pattern makes the search ignore case. Look closely at the results. You will see `B19013_001E` along with `B19013A_001E` through `B19013I_001E`. The lettered versions repeat the table for specific racial and ethnic groups. For example, `B19013B` covers households headed by someone who is Black alone. Tables with `PR` in the ID cover Puerto Rico only.
+
+Labels use `!!` to separate the levels of a table. The first row of most tables (the variable ending in `_001E`) is the total for that table. You will often use it as a denominator.
+
+If you already know the table you want, the `groups` endpoint lists just its variables. Try <https://api.census.gov/data/2024/acs/acs5/groups/B17001.json>{target="_blank"}.
+
+## Computing percentages and their MOEs
+
+Table `B17001` counts people by poverty status. `B17001_002E` is the number of people below the poverty level. `B17001_001E` is the number of people for whom poverty status is determined. Divide one by the other to get a rate:
+
+```{python}
+nc_poverty = get_census(
+    dataset="acs/acs5",
+    year=2024,
+    variables={
+        "below_poverty": "B17001_002E",
+        "below_poverty_moe": "B17001_002M",
+        "universe": "B17001_001E",
+        "universe_moe": "B17001_001M",
+    },
+    geo_for="county:*",
+    geo_in="state:37",
+)
+```
+
+A derived number needs a derived margin of error. The Census Bureau publishes a formula for the MOE of a proportion. The code below follows it. It uses a fallback formula when the value under the square root would be negative. This is the same calculation that tidycensus performs with `moe_prop()`.
+
+```{python}
+p = pl.col("below_poverty") / pl.col("universe")
+under_root = pl.col("below_poverty_moe") ** 2 - p**2 * pl.col("universe_moe") ** 2
+fallback = pl.col("below_poverty_moe") ** 2 + p**2 * pl.col("universe_moe") ** 2
+
+nc_poverty = nc_poverty.with_columns(
+    (100 * p).alias("pct_poverty"),
+    (
+        100
+        * pl.when(under_root < 0).then(fallback).otherwise(under_root).sqrt()
+        / pl.col("universe")
+    ).alias("pct_poverty_moe"),
+)
+
+nc_poverty.select("NAME", "pct_poverty", "pct_poverty_moe").sort(
+    "pct_poverty", descending=True
+)
+```
+
+## Going smaller: census tracts
+
+For tracts, set `geo_for` to `tract:*`. Then limit the results with a state and a county in `geo_in`, separated by a space. Mecklenburg County's FIPS code is `119`:
+
+```{python}
+meck_income = get_census(
+    dataset="acs/acs5",
+    year=2024,
+    variables={
+        "median_income": "B19013_001E",
+        "median_income_moe": "B19013_001M",
+    },
+    geo_for="tract:*",
+    geo_in="state:37 county:119",
+)
+
+meck_income.height
+```
+
+You should get 305 tracts. The GEOIDs are now 11 digits long. The function pastes together the state, county, and tract codes for you.
+
+### Looking up county FIPS codes
+
+To find a county's code, request the list of counties. You only need the `NAME` variable, so pass an empty dictionary:
+
+```{python}
+nc_counties = get_census("acs/acs5", 2024, {}, "county:*", "state:37")
+
+nc_counties.filter(pl.col("NAME").str.contains("Iredell|Cabarrus"))
+```
+
+The last three digits of each GEOID are the county code. Iredell is `097` and Cabarrus is `025`. You can request tracts from several counties at once by separating their codes with commas:
+
+```{python}
+lkn_income = get_census(
+    dataset="acs/acs5",
+    year=2024,
+    variables={"median_income": "B19013_001E", "median_income_moe": "B19013_001M"},
+    geo_for="tract:*",
+    geo_in="state:37 county:119,097,025",
+)
+```
+
+### Watch the margins of error
+
+Tract estimates rest on small samples. Compare each MOE to its estimate to find the shaky ones:
+
+```{python}
+(
+    meck_income
+    .with_columns((pl.col("median_income_moe") / pl.col("median_income")).alias("moe_ratio"))
+    .sort("moe_ratio", descending=True, nulls_last=True)
+    .head(10)
+)
+```
+
+Also count how many tracts have null estimates with `meck_income["median_income"].null_count()`. In Mecklenburg, the nulls are tracts 9801, 9802, and 9803. Tracts numbered in the 9800s are *special land-use tracts* that cover places like airports and large parks. Few or no people live in them, so the Bureau can't compute an income.
+
+::: {.callout-tip}
+## Top-coded values
+Sort `meck_income` by `median_income` from highest to lowest and look at the top tract. Its estimate is exactly `250001`, and its MOE is null. That isn't a real income. The ACS *top-codes* medians, so `250001` means "$250,000 or more." Keep this in mind if you average incomes or rank the wealthiest tracts.
+:::
+
+## The 2020 decennial census
+
+The decennial census uses the same function with a different dataset name. Decennial variable IDs end in `N` because they are counts, and they have no MOEs.
+
+Total population by county, from the Demographic and Housing Characteristics file:
+
+```{python}
+nc_pop_2020 = get_census(
+    dataset="dec/dhc",
+    year=2020,
+    variables={"total_pop": "P1_001N"},
+    geo_for="county:*",
+    geo_in="state:37",
+)
+```
+
+The Redistricting file (`dec/pl`) has race and ethnicity counts. Here is the share of each Mecklenburg tract's population that identifies as Black alone:
+
+```{python}
+meck_black = get_census(
+    dataset="dec/pl",
+    year=2020,
+    variables={"black_alone": "P1_004N", "total_pop": "P1_001N"},
+    geo_for="tract:*",
+    geo_in="state:37 county:119",
+).with_columns(
+    (100 * pl.col("black_alone") / pl.col("total_pop")).alias("pct_black")
+)
+```
+
+You can browse decennial variables at <https://api.census.gov/data/2020/dec/pl/variables.html>{target="_blank"} and <https://api.census.gov/data/2020/dec/dhc/variables.html>{target="_blank"}.
+
+## Saving your data
+
+```{python}
+#| eval: false
+nc_poverty.write_csv("nc_poverty_2024.csv")
+```
+
+When you read the file back, tell Polars that `GEOID` is text. Otherwise it will guess that the column is a number and drop leading zeros:
+
+```{python}
+#| eval: false
+nc_poverty = pl.read_csv("nc_poverty_2024.csv", schema_overrides={"GEOID": pl.String})
+```
+
+## Try it yourself
+
+1. Find the variable for median gross rent. Pull it for every North Carolina county. Which five counties have the highest rent?
+2. Compute the percentage of households in each Mecklenburg tract that have no vehicle available, along with its MOE. Table `B08201` is a good place to start.
+3. The API also offers the ACS subject tables at `acs/acs5/subject`. Subject tables often include percentages that are already computed. Find the poverty rate in table `S1701` and compare it to your own calculation.
+
+## Further reading
+
+- The Census Bureau's [API user guide](https://www.census.gov/data/developers/guidance/api-user-guide.html){target="_blank"} and [list of example queries](https://www.census.gov/data/developers/guidance/api-user-guide.Example_API_Queries.html){target="_blank"}
+- Kyle Walker's [*Analyzing US Census Data*](https://walker-data.com/census-r/){target="_blank"} is written for R. The ideas in [Chapter 2](https://walker-data.com/census-r/an-introduction-to-tidycensus.html){target="_blank"} and [Chapter 3](https://walker-data.com/census-r/wrangling-census-data-with-tidyverse-tools.html){target="_blank"} carry over directly, especially the discussion of margins of error.
+
+**Next:** [Census Data in Python, Part 2: Mapping](census-python-part2.qmd)

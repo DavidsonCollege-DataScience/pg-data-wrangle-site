@@ -1,0 +1,189 @@
+---
+title: "Census 101: How Census Data Is Organized"
+subtitle: "Data products, geographic hierarchies, and downloading tables by hand"
+description: "Start here. Learn the difference between the decennial census and the ACS, how census geographies nest inside each other, and how to download a table from data.census.gov."
+order: 1
+---
+
+::: {.callout-note}
+## About this tutorial
+
+**Time:** about 20 minutes. **Prerequisites:** none. You don't need to write any code for this one.
+
+By the end, you will be able to:
+
+- explain how the decennial census differs from the American Community Survey (ACS)
+- read an ACS estimate together with its margin of error
+- describe the census geographic hierarchy and decode a GEOID
+- find and download a census table from [data.census.gov](https://data.census.gov){target="_blank"}
+:::
+
+## Why start here?
+
+The R and Python tutorials that follow will pull census data with a few lines of code. That code is easy to write. The hard part is knowing *what* to ask for. You need to pick a data product, a year, a table, and a level of geography, and each choice changes what the numbers mean. This tutorial covers the vocabulary you need to make those choices well.
+
+Most of the material here is covered in more depth in Chapter 1 of Kyle Walker's free online book, [*Analyzing US Census Data*](https://walker-data.com/census-r/the-united-states-census-and-the-r-programming-language.html){target="_blank"}.
+
+## Two data products you will use most
+
+The Census Bureau publishes dozens of datasets. For most Data Wrangle projects, you will use one of these two.
+
+### The decennial census
+
+The US Constitution requires a count of every person living in the country every ten years. The most recent count took place in 2020. The decennial census asks only a few questions, such as age, sex, race, Hispanic origin, household relationship, and whether a home is owned or rented.
+
+Because it tries to count everyone, the decennial census reports **counts** rather than estimates. It is published down to the **census block**, the smallest unit of census geography. The 2020 results are released in several files. The two you are most likely to see are:
+
+- the **PL 94-171 Redistricting Data**, which has basic population and race counts
+- the **Demographic and Housing Characteristics File (DHC)**, which has more detail on age, sex, households, and housing
+
+::: {.callout-tip}
+## Counts are not perfectly exact
+The Census Bureau adds a small amount of statistical noise to 2020 results through a method called *differential privacy*. The noise protects the confidentiality of respondents. It matters little for counties but can matter for very small areas such as individual blocks.
+:::
+
+### The American Community Survey (ACS)
+
+The ACS is a survey sent to about 3.5 million addresses every year. It asks far more questions than the decennial census, including questions on income, poverty, education, commuting, health insurance, internet access, and housing costs. If your question involves money, work, or schooling, you probably want the ACS.
+
+Because the ACS is a sample, it reports **estimates**. Each estimate comes with a **margin of error (MOE)**. The Bureau releases two main versions:
+
+| | ACS 1-year | ACS 5-year |
+|----|----|----|
+| Data collected over | 12 months | 60 months |
+| Geographies covered | Areas with 65,000 or more people | All areas, down to block groups |
+| Strength | Most current | Most reliable, and covers small areas |
+| Latest release (as of Fall 2026) | 2024 | 2020 to 2024 |
+
+A 5-year estimate describes the whole five-year period. It is not a value for the final year. For example, the "2024 ACS 5-year" median household income for a county summarizes responses collected from 2020 through 2024.
+
+::: {.callout-warning}
+## Two rules of thumb for the ACS
+1. **Census tracts and block groups exist only in the 5-year data.** They are too small for the 1-year survey.
+2. **Don't compare overlapping 5-year periods.** Comparing 2019 to 2023 with 2020 to 2024 is misleading because four of the five years are the same. Compare periods that don't overlap, such as 2015 to 2019 with 2020 to 2024.
+:::
+
+### Reading a margin of error
+
+Suppose the ACS reports that a census tract has a median household income of $62,000 with an MOE of $9,000. ACS margins of error use a 90 percent confidence level. So the Bureau is 90 percent confident that the true value falls between $53,000 and $71,000.
+
+This matters when you compare places. Say a neighboring tract has an estimate of $66,000 ± $10,000. The two ranges overlap a lot, so you cannot claim that one tract really earns more than the other. Small geographies have small samples. That means large MOEs, so keep an eye on them whenever you work at the tract level.
+
+## The geographic hierarchy
+
+Census data is always reported *for a place*. The Bureau organizes places into a hierarchy. The core of it is sometimes called the "spine," because each level nests cleanly inside the one above it.
+
+```
+Nation
+└── Region (4)
+    └── Division (9)
+        └── State (50, plus DC and Puerto Rico)
+            └── County (NC has 100)
+                └── Census tract (about 1,200 to 8,000 people)
+                    └── Block group (about 600 to 3,000 people)
+                        └── Block (smallest; decennial census only)
+```
+
+A few things to know about the spine:
+
+- **Counties** are the workhorse geography for statewide comparisons. North Carolina's 100 counties make for a manageable map.
+- **Census tracts** are drawn to hold about 4,000 people. They are the most common way to look *inside* a county. North Carolina has about 2,670 tracts, and Mecklenburg County has 305 of them.
+- **Tract boundaries are redrawn every ten years.** Tracts from the 2010s don't always match tracts from the 2020s. Be careful when you compare tract data from before and after 2020.
+
+### Geographies that don't nest
+
+Some geographies you will care about sit *off* the spine. They don't fit neatly inside counties or tracts:
+
+- **Places** are cities, towns, and unincorporated communities, such as Davidson, Charlotte, or Cornelius. Place boundaries can cross county lines. The town of Cary, for example, lies partly in Wake County and partly in Chatham County.
+- **ZIP Code Tabulation Areas (ZCTAs)** approximate ZIP codes. The Postal Service designs ZIP codes to deliver mail, not to describe communities, so ZCTAs cross county and even state lines.
+- **Congressional districts**, **state legislative districts**, and **school districts** follow political boundaries.
+- **Metropolitan and micropolitan statistical areas** group counties into regional economies. Davidson sits in the Charlotte-Concord-Gastonia metro area, which crosses into South Carolina.
+
+When you choose a geography, pick one that matches your question. If you are asking about school funding, school districts may fit better than counties.
+
+## GEOIDs: the key that ties everything together
+
+Every census geography has a numeric identifier called a **GEOID**. It is built by stacking FIPS codes from each level of the spine:
+
+| Level | Digits | Example | Meaning |
+|----|----|----|----|
+| State | 2 | `37` | North Carolina |
+| County | 3 | `119` | Mecklenburg County |
+| Tract | 6 | `000101` | Census Tract 1.01 |
+| Block group | 1 | `1` | Block Group 1 |
+
+So `37119` is Mecklenburg County, and `37119000101` is Census Tract 1.01 in Mecklenburg County. You can read a tract GEOID from left to right like an address.
+
+GEOIDs matter for two reasons:
+
+1. **Joining data.** When you attach census numbers to map shapes, or combine census data with a dataset from somewhere else, the GEOID is the column you join on.
+2. **They must stay text.** Many GEOIDs contain meaningful leading zeros. Alabama is `01`, and the county code for Alamance County, NC is `001`. If a spreadsheet program or a CSV reader turns the GEOID into a number, those zeros vanish and your joins will quietly fail. Always read GEOIDs as strings.
+
+## Tables and variables
+
+Census data is organized into **tables**, and each table holds several **variables**. Table IDs start with a letter that tells you what kind of table it is:
+
+| Prefix | Table type | Notes |
+|----|----|----|
+| `B` | Detailed table | The most granular ACS tables. These are what the code tutorials mostly use. |
+| `C` | Collapsed table | A detailed table with fewer categories |
+| `S` | Subject table | Summaries on one topic, often with percentages already computed |
+| `DP` | Data profile | Broad overviews of social, economic, housing, and demographic traits |
+| `P`, `H` | Decennial tables | Population (`P`) and housing (`H`) tables from the decennial census |
+
+A variable ID adds a line number to the table ID. For example, table `B19013` is *Median Household Income in the Past 12 Months*. Its first line is `B19013_001`. In raw downloads and in the Census API, you will see a suffix at the end of the ID:
+
+- `B19013_001E` is the **E**stimate
+- `B19013_001M` is the **M**argin of error
+- `P1_001N` is a 2020 decennial count, where **N** stands for a number
+
+## Downloading a table by hand
+
+Before you write any code, it helps to find a table in the Bureau's own tool. Let's download median household income for every county in North Carolina.
+
+1. Go to [data.census.gov](https://data.census.gov){target="_blank"} and click **Advanced Search**.
+2. In the search box, type `B19013` and press Enter. Open the table named **Median Household Income in the Past 12 Months**.
+3. Click the product dropdown near the table title. Choose the most recent **ACS 5-Year Estimates Detailed Tables**.
+4. Open the **Geos** filter. Choose **County**, then **North Carolina**, then **All Counties within North Carolina**.
+5. Look over the table in your browser. Notice that each county has both an estimate and a margin of error.
+6. Click **Download Table** and choose the CSV format. You will receive a ZIP file.
+
+::: {.callout-tip}
+## What's inside the ZIP file?
+The ZIP file usually holds a data file and a metadata file that describes each column. Open the data file and look at the first two rows. The first row usually contains column codes such as `B19013_001E`. The second row often contains longer labels. When you read the file into R or Python, keep the codes as column names and skip the label row.
+:::
+
+Point-and-click downloads work well for one table and one geography. They become tedious when you need five tables, three years, and two kinds of geography. They are also hard to reproduce. That is why the next tutorials use code.
+
+## Other places to find census data
+
+- [**Census Reporter**](https://censusreporter.org){target="_blank"} is a free, friendly site for browsing ACS profiles of any place. It is great for a quick sanity check on your numbers.
+- [**IPUMS NHGIS**](https://www.nhgis.org){target="_blank"} offers historical census tables and boundary files going back to 1790. It is useful if you need to compare places over long periods.
+- [**The Census API**](https://www.census.gov/data/developers.html){target="_blank"} is the service that the R and Python tutorials call behind the scenes.
+
+## Before the next tutorial: get an API key
+
+The Census API requires a free key for every request. Request one now at <https://api.census.gov/data/key_signup.html>{target="_blank"}. The key arrives by email within a few minutes. You have to click a link in that email to activate it.
+
+::: {.callout-important}
+## Treat your key like a password
+Don't paste your key into a file you plan to push to GitHub. The R and Python tutorials show you how to store it safely.
+:::
+
+## Check your understanding
+
+1. You want the poverty rate for every census tract in Mecklenburg County. Which data product and which version should you use?
+2. What does the GEOID `37119005828` refer to? Why would the GEOID `01001` cause trouble in a spreadsheet?
+3. A friend says Cornelius has a higher median income than Huntersville, based on ACS estimates that differ by $3,000. What would you check before agreeing?
+
+::: {.callout-tip collapse="true"}
+## Answers
+1. The ACS 5-year estimates. Tracts don't appear in the 1-year data, and the decennial census doesn't ask about income.
+2. It is Census Tract 58.28 in Mecklenburg County (`37` + `119` + `005828`). The GEOID `01001` (Autauga County, Alabama) would become the number `1001` in a spreadsheet. It would then fail to match the text `01001` in any other dataset.
+3. The margins of error. If the two ranges overlap, the difference may not be meaningful.
+:::
+
+## Next steps
+
+- **R users:** continue to [Census Data in R, Part 1](census-r-part1.qmd).
+- **Python users:** continue to [Census Data in Python, Part 1](census-python-part1.qmd).

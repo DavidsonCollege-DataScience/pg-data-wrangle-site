@@ -25,11 +25,11 @@ website:
         href: index.qmd#schedule
       - text: FAQ
         href: index.qmd#faq
-      - text: Sponsors
-        href: index.qmd#sponsors
+      - text: Organizers
+        href: index.qmd#organizers
+      - text: Tutorials
+        href: tutorials/index.qmd
   page-footer:
-    center: |
-      [![](images/davidson-wordmark-horizontal-lockup-white_sm.png){fig-alt="Davidson College" target="_blank" width="50%"}](https://davidson.edu)
     right: "Made with Quarto"
     background: "#0f1012"
     foreground: "#ffffff"
@@ -43,9 +43,22 @@ format:
     mainfont: "Atkinson Hyperlegible"
     fontsize: 20px
     theme: [materia, styles.scss]
+    lightbox: true
+    grid:
+      body-width: 1100px # default 800px feels cramped at 20px font
 
 execute:
   freeze: auto
   cache: true
+
+filters:
+  # The two plain-cell-output filters sit on either side of code-window so
+  # cell output renders as plain text, not as code windows
+  - at: pre-quarto
+    path: _filters/plain-cell-output.lua
+  - at: pre-quarto
+    path: code-window
+  - at: pre-quarto
+    path: _filters/plain-cell-output-cleanup.lua
 
 editor: source

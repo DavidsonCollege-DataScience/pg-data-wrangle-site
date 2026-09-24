@@ -1,7 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://datasci.davidson.edu/datawrangle/tutorials/index.html</loc>
+    <lastmod>2026-09-24T10:51:59.413Z</lastmod>
+  </url>
+  <url>
+    <loc>https://datasci.davidson.edu/datawrangle/tutorials/census-r-part1.html</loc>
+    <lastmod>2026-09-24T11:26:26.462Z</lastmod>
+  </url>
+  <url>
+    <loc>https://datasci.davidson.edu/datawrangle/tutorials/census-python-part1.html</loc>
+    <lastmod>2026-09-24T11:22:24.229Z</lastmod>
+  </url>
+  <url>
     <loc>https://datasci.davidson.edu/datawrangle/index.html</loc>
-    <lastmod>2026-09-24T10:20:38.603Z</lastmod>
+    <lastmod>2026-09-24T10:55:35.136Z</lastmod>
+  </url>
+  <url>
+    <loc>https://datasci.davidson.edu/datawrangle/tutorials/census-101.html</loc>
+    <lastmod>2026-09-24T11:22:12.344Z</lastmod>
+  </url>
+  <url>
+    <loc>https://datasci.davidson.edu/datawrangle/tutorials/census-python-part2.html</loc>
+    <lastmod>2026-09-24T11:50:19.916Z</lastmod>
+  </url>
+  <url>
+    <loc>https://datasci.davidson.edu/datawrangle/tutorials/census-r-part2.html</loc>
+    <lastmod>2026-09-24T11:53:17.250Z</lastmod>
   </url>
 </urlset>

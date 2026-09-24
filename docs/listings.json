@@ -1,0 +1,12 @@
+[
+  {
+    "listing": "/tutorials/index.html",
+    "items": [
+      "/tutorials/census-101.html",
+      "/tutorials/census-r-part1.html",
+      "/tutorials/census-r-part2.html",
+      "/tutorials/census-python-part1.html",
+      "/tutorials/census-python-part2.html"
+    ]
+  }
+]

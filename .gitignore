@@ -6,3 +6,13 @@
 /.quarto/
 
 **/*.quarto_ipynb
+**/.env
+
+# Python environment for rendering the tutorials
+.venv/
+__pycache__/
+
+# Local execution caches for the tutorials (outputs live in _freeze/)
+**/*_cache/
+**/.jupyter_cache/
+tutorials/*_files/

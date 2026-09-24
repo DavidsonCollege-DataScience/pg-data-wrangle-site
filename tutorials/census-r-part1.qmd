@@ -1,0 +1,304 @@
+---
+title: "Census Data in R, Part 1: Getting Tables with tidycensus"
+subtitle: "ACS and decennial data for North Carolina counties and census tracts"
+description: "Use the tidycensus package to pull ACS and 2020 decennial census data for North Carolina counties and Mecklenburg County census tracts."
+order: 2
+---
+
+::: {.callout-note}
+## About this tutorial
+
+**Time:** about 25 minutes. **Prerequisites:** R and RStudio (or Positron) installed, basic familiarity with the tidyverse, and a Census API key. If you haven't read [Census 101](census-101.qmd) yet, skim it first.
+
+By the end, you will be able to:
+
+- store your Census API key so that R can find it
+- pull ACS estimates for every county in North Carolina
+- pull ACS estimates for census tracts in one or more counties
+- find the variable IDs you need
+- compute percentages and their margins of error
+- pull 2020 decennial census counts
+:::
+
+## Setup
+
+[tidycensus](https://walker-data.com/tidycensus/){target="_blank"} is an R package written by Kyle Walker. It talks to the Census API for you and returns tidy data frames. Install it along with the tidyverse if you don't have them yet:
+
+```{r}
+#| eval: false
+install.packages(c("tidycensus", "tidyverse"))
+```
+
+Then load both packages:
+
+```{r}
+#| message: false
+library(tidycensus)
+library(tidyverse)
+```
+
+### Store your API key
+
+Run the line below once, using the key from your email in place of the placeholder. The `install = TRUE` argument saves the key to a file named `.Renviron` in your home folder. R reads that file each time it starts, so you never have to paste the key into a script again.
+
+```{r}
+#| eval: false
+census_api_key("YOUR_KEY_GOES_HERE", install = TRUE)
+```
+
+Restart R after you run it. You can confirm that R found the key with this line:
+
+```{r}
+#| eval: false
+Sys.getenv("CENSUS_API_KEY")
+```
+
+::: {.callout-warning}
+## Keep the key out of your scripts
+After you have run `census_api_key()` once, delete that line from your script. That way you won't push your key to GitHub by accident.
+:::
+
+## Your first request: income by county
+
+`get_acs()` pulls data from the American Community Survey. Let's get median household income (variable `B19013_001`) for every county in North Carolina:
+
+```{r}
+nc_income <- get_acs(
+  geography = "county",
+  state = "NC",
+  variables = "B19013_001",
+  year = 2024
+)
+
+nc_income
+```
+
+You should get a tibble with 100 rows, one per county, and five columns:
+
+| Column | What it holds |
+|----|----|
+| `GEOID` | The county's FIPS code, such as `37119` for Mecklenburg |
+| `NAME` | A readable name, such as "Mecklenburg County, North Carolina" |
+| `variable` | The variable ID you requested |
+| `estimate` | The ACS estimate |
+| `moe` | The margin of error, at a 90 percent confidence level |
+
+A few defaults are worth knowing about:
+
+- `get_acs()` uses the **5-year** ACS unless you set `survey = "acs1"`. With `year = 2024`, you get the 2020 to 2024 estimates.
+- Always set `year` yourself. The default changes as new data comes out. Setting it explicitly keeps your results reproducible.
+- You can write states and counties as names (`"North Carolina"`), abbreviations (`"NC"`), or FIPS codes (`"37"`).
+
+Now use regular dplyr to explore:
+
+```{r}
+nc_income |>
+  arrange(desc(estimate)) |>
+  slice_head(n = 5)
+```
+
+## Naming variables and requesting several at once
+
+Variable IDs are hard to remember. You can give them names inside `c()`. You can also request several variables in one call:
+
+```{r}
+nc_profile <- get_acs(
+  geography = "county",
+  state = "NC",
+  variables = c(
+    median_income = "B19013_001",
+    median_age = "B01002_001",
+    total_pop = "B01003_001"
+  ),
+  year = 2024
+)
+```
+
+This result is in **long** format. Each county appears three times, once per variable. Long data works well with ggplot2 and `group_by()`. If you'd rather have one row per county, ask for **wide** output:
+
+```{r}
+nc_profile_wide <- get_acs(
+  geography = "county",
+  state = "NC",
+  variables = c(
+    median_income = "B19013_001",
+    median_age = "B01002_001",
+    total_pop = "B01003_001"
+  ),
+  output = "wide",
+  year = 2024
+)
+
+names(nc_profile_wide)
+```
+
+In wide output, tidycensus adds an `E` suffix to estimates and an `M` suffix to margins of error. You get columns such as `median_incomeE` and `median_incomeM`.
+
+## Finding variables
+
+The 5-year ACS has more than 25,000 variables. `load_variables()` downloads the full list so you can search it:
+
+```{r}
+acs_vars <- load_variables(2024, "acs5")
+```
+
+In RStudio, run `View(acs_vars)` and type in the search box to filter. You can also search with code. The label column describes what each variable measures. The concept column names the table it belongs to.
+
+```{r}
+acs_vars |>
+  filter(str_detect(concept, regex("median household income", ignore_case = TRUE))) |>
+  select(name, label, concept) |>
+  head(12)
+```
+
+Look closely at the results. You will see `B19013_001` along with `B19013A_001` through `B19013I_001`. The lettered versions repeat the table for specific racial and ethnic groups. For example, `B19013B` covers households headed by someone who is Black alone. Tables with `PR` in the ID cover Puerto Rico only.
+
+::: {.callout-tip}
+## Reading labels
+Labels use `!!` to separate levels of a table. For example, `Estimate!!Total:!!Income in the past 12 months below poverty level:` means "of the total, the number with income below the poverty level." The first row of most tables (the variable ending in `_001`) is the total for that table. You will often use it as a denominator.
+:::
+
+## Computing percentages
+
+Counts are hard to compare across counties of very different sizes. Mecklenburg has more than a million people. Tyrrell County has about 3,000. Percentages make fairer comparisons.
+
+Table `B17001` counts people by poverty status. `B17001_002` is the number of people below the poverty level. `B17001_001` is the number of people for whom poverty status is determined. The `summary_var` argument fetches the denominator alongside your variable:
+
+```{r}
+nc_poverty <- get_acs(
+  geography = "county",
+  state = "NC",
+  variables = c(below_poverty = "B17001_002"),
+  summary_var = "B17001_001",
+  year = 2024
+) |>
+  mutate(
+    pct_poverty = 100 * estimate / summary_est,
+    pct_poverty_moe = 100 * moe_prop(estimate, summary_est, moe, summary_moe)
+  )
+
+nc_poverty |>
+  select(NAME, pct_poverty, pct_poverty_moe) |>
+  arrange(desc(pct_poverty))
+```
+
+The `summary_var` values arrive in the `summary_est` and `summary_moe` columns. `moe_prop()` is a tidycensus helper that computes the margin of error for a proportion. When you derive a new number from ACS estimates, you should derive a new MOE for it too.
+
+## Going smaller: census tracts
+
+To look inside a county, switch `geography` to `"tract"`. Tract requests need a state. They usually include one or more counties as well.
+
+```{r}
+meck_income <- get_acs(
+  geography = "tract",
+  state = "NC",
+  county = "Mecklenburg",
+  variables = c(median_income = "B19013_001"),
+  year = 2024
+)
+
+meck_income
+```
+
+That should return 305 tracts. To cover the area around Davidson, pass several counties at once:
+
+```{r}
+lkn_income <- get_acs(
+  geography = "tract",
+  state = "NC",
+  county = c("Mecklenburg", "Iredell", "Cabarrus"),
+  variables = c(median_income = "B19013_001"),
+  year = 2024
+)
+```
+
+### Watch the margins of error
+
+Tract estimates rest on small samples, so their MOEs are much larger than county MOEs. A quick way to spot shaky estimates is to compare each MOE to its estimate:
+
+```{r}
+meck_income |>
+  mutate(moe_ratio = moe / estimate) |>
+  arrange(desc(moe_ratio)) |>
+  select(NAME, estimate, moe, moe_ratio) |>
+  head(10)
+```
+
+A tract whose MOE is 30 or 40 percent of its estimate deserves a caution note in your presentation. You may also notice some `NA` estimates. In Mecklenburg, they belong to tracts 9801, 9802, and 9803. Tracts numbered in the 9800s are *special land-use tracts* that cover places like airports and large parks. Few or no people live in them, so the Bureau can't compute an income.
+
+::: {.callout-tip}
+## Top-coded values
+Sort `meck_income` by `estimate` from highest to lowest and look at the top tract. Its estimate is exactly `250001`, and its MOE is `NA`. That isn't a real income. The ACS *top-codes* medians, so `250001` means "$250,000 or more." Keep this in mind if you average incomes or rank the wealthiest tracts.
+:::
+
+## The 2020 decennial census
+
+`get_decennial()` works much like `get_acs()`. There are two differences. You need to name a **summary file** with `sumfile`, and the results come back in a column called `value` because decennial data has no margin of error.
+
+Total population by county from the Demographic and Housing Characteristics file:
+
+```{r}
+nc_pop_2020 <- get_decennial(
+  geography = "county",
+  state = "NC",
+  variables = c(total_pop = "P1_001N"),
+  year = 2020,
+  sumfile = "dhc"
+)
+```
+
+The Redistricting file (`sumfile = "pl"`) has race and ethnicity counts at every level of geography. Here is the share of each Mecklenburg tract's population that identifies as Black alone:
+
+```{r}
+meck_black <- get_decennial(
+  geography = "tract",
+  state = "NC",
+  county = "Mecklenburg",
+  variables = c(black_alone = "P1_004N"),
+  summary_var = "P1_001N",
+  year = 2020,
+  sumfile = "pl"
+) |>
+  mutate(pct_black = 100 * value / summary_value)
+```
+
+You can browse decennial variables the same way as ACS variables, with `load_variables(2020, "pl")` or `load_variables(2020, "dhc")`.
+
+::: {.callout-tip}
+## Which one should I use?
+Use the decennial census for population counts and basic demographics in 2020. Use the ACS for anything about income, poverty, education, employment, or housing costs. Use it too when you need something more recent than 2020.
+:::
+
+## Saving your data
+
+Save your results as a CSV so your teammates can use them:
+
+```{r}
+#| eval: false
+write_csv(nc_poverty, "nc_poverty_2024.csv")
+```
+
+When you read the file back, tell readr that `GEOID` is text. Otherwise it may guess that the column is a number and drop leading zeros:
+
+```{r}
+#| eval: false
+nc_poverty <- read_csv(
+  "nc_poverty_2024.csv",
+  col_types = cols(GEOID = col_character())
+)
+```
+
+## Try it yourself
+
+1. Find the variable for the median gross rent (hint: search the concept column for "median gross rent"). Pull it for every North Carolina county. Which five counties have the highest rent?
+2. Use `summary_var` to compute the percentage of households in each Mecklenburg tract that have no vehicle available. Table `B08201` is a good place to start. Which tracts have the largest MOEs?
+3. Compare total population in 2020 (decennial) with the 2024 ACS 5-year estimate of total population for each county. Which counties seem to be growing fastest? Why should you be cautious about this comparison?
+
+## Further reading
+
+From Kyle Walker's [*Analyzing US Census Data*](https://walker-data.com/census-r/){target="_blank"}:
+
+- [Chapter 2: An introduction to tidycensus](https://walker-data.com/census-r/an-introduction-to-tidycensus.html){target="_blank"}
+- [Chapter 3: Wrangling Census data with tidyverse tools](https://walker-data.com/census-r/wrangling-census-data-with-tidyverse-tools.html){target="_blank"}, especially the sections on margins of error
+
+**Next:** [Census Data in R, Part 2: Mapping](census-r-part2.qmd)
