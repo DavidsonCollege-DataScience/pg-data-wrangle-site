@@ -7,7 +7,7 @@ project:
 
 website:
   title: "Public Good Data Wrangle"
-  description: "48-hour data science hackathon at Davidson College!"
+  description: "The Public Good Data Wrangle is a 1-day data science hackathon at Davidson College that challenges students to tackle public policy issues through analyzing, visualizing, and presenting data."
   site-url: https://datasci.davidson.edu/datawrangle
   repo-url: https://github.com/DavidsonCollege-DataScience/pg-data-wrangle-site
   open-graph: true # https://quarto.org/docs/websites/website-tools.html#open-graph

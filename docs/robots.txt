@@ -1,1 +1,1 @@
-Sitemap: https://davidsoncollege-datascience.github.io/datafest/sitemap.xml
+Sitemap: https://datasci.davidson.edu/datawrangle/sitemap.xml

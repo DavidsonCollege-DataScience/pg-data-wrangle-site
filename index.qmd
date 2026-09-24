@@ -1,8 +1,8 @@
 ---
 title: "Public Good Data Wrangle"
 subtitle: "{{< var pgdw.term >}}"
-format: 
-  html: 
+format:
+  html:
     smooth-scroll: true
     include-in-header:
       - text: |
@@ -20,7 +20,7 @@ about:
   image-alt: "Official logo for the Public Good Data Wrangle"
   links:
     - icon: calendar-check-fill
-      text: "October 3, 2027"
+      text: "October 3, 2026"
     - icon: geo-alt-fill
       text: "Davidson College, NC"
 accordion:
@@ -34,7 +34,7 @@ accordion:
     - header: "Do I need a team?"
       body: "While the Data Wrangle does organize students into teams of three, we do not require you to bring your own team with you. If you show up solo, we will find a team for you! But you can also form your own team prior to DataFest if you like by adding your teammates' names on the registration form."
     - header: "Will there be prizes?"
-      body: "Yes! We will be raffling off prizes throughout the weekend, plus teams have the opportunity to win additional prizes under three award categories that will be judged on the final day of the competition: (1) Best Visualization, (2) Best Use of External Data, and (3) Best Insight."
+      body: "Yes!"
 ---
 
 :::{#hero-heading}
@@ -42,7 +42,15 @@ accordion:
 <div id="flipdown" class="flipdown" style="display:none;"></div>
 
 <script>
-  const targetDate = new Date('2026-10-03T10:00:00-05:00');
+  const eventDay = '{{< var pgdw.iso_date >}}';
+  const eventTime = '10:00:00';
+  // Look up the Eastern offset on the event day so DST is handled automatically
+  const tzName = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'longOffset'
+  }).formatToParts(new Date(`${eventDay}T12:00:00Z`))
+    .find(p => p.type === 'timeZoneName').value;
+  const targetDate = new Date(`${eventDay}T${eventTime}${tzName.slice(3)}`);
   const daysUntil = (targetDate - new Date()) / (1000 * 60 * 60 * 24);
   if (daysUntil > 0 && daysUntil < 100) {
     document.getElementById('flipdown').style.display = '';
@@ -102,4 +110,3 @@ Data Wrangle 2026 schedule is TBD!
 - Dr. Chris Marsicano
 - Dr. Kevin McElrath
 - Dr. Ken Menkhaus
-

@@ -3,3 +3,4 @@ version: 2.0
 pgdw:
   date: 'Oct 3, 2026'
   term: Fall 2026
+  iso_date: '2026-10-03'

@@ -78,7 +78,7 @@ ul.task-list li input[type="checkbox"] {
 
 <meta property="og:title" content="Public Good Data Wrangle">
 <meta property="og:description" content="Fall 2026">
-<meta property="og:image" content="https://davidsoncollege-datascience.github.io/datafest/images/feature_data_wrangle_logo.png">
+<meta property="og:image" content="https://datasci.davidson.edu/datawrangle/images/feature_data_wrangle_logo.png">
 <meta property="og:site_name" content="Public Good Data Wrangle">
 <meta property="og:image:alt" content="Official logo for the Public Good Data Wrangle">
 <meta property="og:image:height" content="1024">
@@ -156,7 +156,15 @@ ul.task-list li input[type="checkbox"] {
 </header><div id="hero-heading">
 <div id="flipdown" class="flipdown" style="display:none;"></div>
 <script>
-  const targetDate = new Date('2026-10-03T10:00:00-05:00');
+  const eventDay = '2026-10-03';
+  const eventTime = '10:00:00';
+  // Look up the Eastern offset on the event day so DST is handled automatically
+  const tzName = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'longOffset'
+  }).formatToParts(new Date(`${eventDay}T12:00:00Z`))
+    .find(p => p.type === 'timeZoneName').value;
+  const targetDate = new Date(`${eventDay}T${eventTime}${tzName.slice(3)}`);
   const daysUntil = (targetDate - new Date()) / (1000 * 60 * 60 * 24);
   if (daysUntil > 0 && daysUntil < 100) {
     document.getElementById('flipdown').style.display = '';
@@ -168,7 +176,7 @@ ul.task-list li input[type="checkbox"] {
    <div class="about-links">
   <a href="" class="about-link" rel="" target="">
     <i class="bi bi-calendar-check-fill"></i>
-     <span class="about-link-text">October 3, 2027</span>
+     <span class="about-link-text">October 3, 2026</span>
   </a>
   <a href="" class="about-link" rel="" target="">
     <i class="bi bi-geo-alt-fill"></i>
@@ -245,13 +253,13 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 <div class="accordion-item">
-<div class="accordion-header" id="heading-faq-beprizestinsight">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-faq-beprizestinsight" aria-expanded="false" aria-controls="collapse-faq-beprizestinsight">
+<div class="accordion-header" id="heading-faq-beprizesyes">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-faq-beprizesyes" aria-expanded="false" aria-controls="collapse-faq-beprizesyes">
 <div class="accordion-header-content">Will there be prizes?</div></button>
 </div>
-<div id="collapse-faq-beprizestinsight" class="accordion-collapse collapse" aria-labelledby="heading-faq-beprizestinsight" data-bs-parent="faq">
+<div id="collapse-faq-beprizesyes" class="accordion-collapse collapse" aria-labelledby="heading-faq-beprizesyes" data-bs-parent="faq">
 <div class="accordion-body">
-<div class="accordion-body-content">Yes! We will be raffling off prizes throughout the weekend, plus teams have the opportunity to win additional prizes under three award categories that will be judged on the final day of the competition: (1) Best Visualization, (2) Best Use of External Data, and (3) Best Insight.</div></div>
+<div class="accordion-body-content">Yes!</div></div>
 </div>
 </div>
 </div>
@@ -348,7 +356,7 @@ ul.task-list li input[type="checkbox"] {
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/davidsoncollege-datascience\.github\.io\/datafest");
+        var filterRegex = new RegExp("https:\/\/datasci\.davidson\.edu\/datawrangle");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
@@ -682,7 +690,7 @@ ul.task-list li input[type="checkbox"] {
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p><a href="https://davidson.edu"><img src=".\images/davidson-wordmark-horizontal-lockup-white_sm.png" class="img-fluid" style="width:50.0%" target="_blank" alt="Davidson College"></a></p>
+<p><a href="https://davidson.edu"><img src="images/davidson-wordmark-horizontal-lockup-white_sm.png" class="img-fluid" style="width:50.0%" target="_blank" alt="Davidson College"></a></p>
 </div>
     <div class="nav-footer-right">
 <p>Made with Quarto</p>
